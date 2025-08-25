@@ -1,0 +1,25 @@
+services:
+  # FastAPI application (depends on postgres)
+  fastapi-template:
+    environment:
+      - ENV_TYPE=development
+      - RUNNING_IN_DOCKER=true
+
+      # Dev database connection
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=Password123
+      - POSTGRES_DB=fastapi-template-db
+    volumes:
+      # Mount app/ directory for live code updates
+      - ./app:/app/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: "no"
+    healthcheck:
+      disable: true
+  

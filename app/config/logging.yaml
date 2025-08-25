@@ -1,0 +1,26 @@
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  simple:
+    format: "%(name)s:\t%(message)s"
+
+handlers:
+  console:
+    (): rich.logging.RichHandler
+    level: INFO
+    formatter: simple
+    markup: true
+    rich_tracebacks: true
+
+loggers:
+  # Assuming 'app' is the main app package
+  app: { level: INFO }
+  scripts: { level: INFO }
+  # Configure uvicorn's loggers if running with uvicorn directly
+  uvicorn.error: { level: WARNING }
+  uvicorn.access: { level: WARNING }
+
+root:
+  level: INFO
+  handlers: [console]
