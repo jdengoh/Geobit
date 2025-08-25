@@ -1,6 +1,6 @@
 services:
   # FastAPI application (depends on postgres)
-  fastapi-template:
+  geobit:
     environment:
       - ENV_TYPE=development
       - RUNNING_IN_DOCKER=true
@@ -10,7 +10,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=Password123
-      - POSTGRES_DB=fastapi-template-db
+      - POSTGRES_DB=geobit-db
     volumes:
       # Mount app/ directory for live code updates
       - ./app:/app/app

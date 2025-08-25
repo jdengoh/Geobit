@@ -1,2 +1,3 @@
-# FastAPI-Template
-A FastAPI template for my experimental learning
+# GeoBit Backend
+
+Geobit!

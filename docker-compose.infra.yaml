@@ -2,29 +2,29 @@ services:
   # PostgreSQL for development (dependency first)
   postgres:
     image: postgres:alpine
-    container_name: fastapi-template-db
+    container_name: geobit-db
     environment:
-      POSTGRES_DB: fastapi-template-db
+      POSTGRES_DB: geobit-db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: Password123
     ports:
       - "5432:5432"
     volumes:
-      - fastapi-template-db:/var/lib/postgresql/data
+      - geobit-db:/var/lib/postgresql/data
     healthcheck:
       # Run a healthcheck, which our app will depend on before starting
-      test: ["CMD-SHELL", "pg_isready -U postgres -d fastapi-template-db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d geobit-db"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 10s
     networks:
-      - fastapi-template-infra-network
+      - geobit-infra-network
 
 volumes:
-  fastapi-template-db:
+  geobit-db:
 
 networks:
-  fastapi-template-infra-network:
-    name: fastapi-template-infra-network
+  geobit-infra-network:
+    name: geobit-infra-network
     driver: bridge
