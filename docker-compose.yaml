@@ -27,4 +27,4 @@ networks:
     driver: bridge
   geobit-infra-network:
     name: geobit-infra-network
-    driver: bridge 
+    driver: bridge

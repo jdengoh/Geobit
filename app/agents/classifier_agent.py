@@ -1,7 +1,9 @@
 # compliance_classifier.py
 import enum
-from pydantic import BaseModel
+
 from agents import Agent
+from pydantic import BaseModel
+
 
 class Classification(str, enum.Enum):
     COMPLIANCE_REQUIRED = "COMPLIANCE_REQUIRED"
@@ -9,12 +11,14 @@ class Classification(str, enum.Enum):
     UNCLEAR_DUE_TO_JARGON = "UNCLEAR_DUE_TO_JARGON"
     UNCLEAR_NEEDS_HUMAN = "UNCLEAR_NEEDS_HUMAN"
 
+
 class RoutingResult(BaseModel):
     classification: Classification
     """The routing decision for this feature"""
-    
+
     reasoning: str
     """Why this routing decision was made"""
+
 
 # CLASSIFICATION_INSTRUCTIONS = """
 # You are a Compliance Classifier Agent for TikTok's geo-compliance detection system.
@@ -91,6 +95,7 @@ AVAILABLE TOOLS:
 
 OUTPUT: Execute your plan and provide the final compliance analysis report.
 """
+
 
 def create_classifier_agent() -> Agent:
     return Agent(

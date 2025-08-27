@@ -1,12 +1,13 @@
-from fastapi import Depends, Request
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Request
+
+from app.config import CONFIG_AGENT_SERVICE
+from app.services.agent_service import AgentService
 
 # from app.database.db import get_db
 
 # Define dependencies here
 
-from app.config import CONFIG_AGENT_SERVICE
-from app.services.agent_service import AgentService
+
 
 def get_agent_service(request: Request) -> AgentService:
 

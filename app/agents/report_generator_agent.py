@@ -1,24 +1,28 @@
 # compliance_report_generator.py
-from pydantic import BaseModel
-from agents import Agent
 from typing import Optional
+
+from agents import Agent
+from pydantic import BaseModel
+
 
 class ComplianceReportInput(BaseModel):
     # From Router Agent
     router_classification: str
     router_reasoning: str
-    
+
     # From Analysis Agent (if applicable)
     regulations_found: Optional[list[dict]] = None
     analysis_summary: Optional[str] = None
-    
+
     # Feature details
     feature_title: str
     feature_description: str
 
+
 class ComplianceReport(BaseModel):
     markdown_report: str
     """The complete compliance report in markdown format"""
+
 
 COMPLIANCE_REPORT_GENERATOR_INSTRUCTIONS = """
 You are the **Compliance Report Generator Agent**. Your job is to produce a comprehensive geo-compliance analysis report in markdown format.
@@ -41,14 +45,14 @@ You will receive:
 - Brief reasoning and key regulations
 - Risk assessment and immediate actions
 
-## Feature Analysis  
+## Feature Analysis
 - Feature title and description breakdown
 - Geographic scope and user impact analysis
 - Data handling implications
 
 ## Regulatory Assessment (if applicable)
 - Detailed analysis of each regulation identified
-- Jurisdiction-specific requirements  
+- Jurisdiction-specific requirements
 - Implementation complexity
 
 ## Risk & Impact Analysis
@@ -69,9 +73,10 @@ You will receive:
 **Generate clear, audit-ready markdown that legal and engineering teams can immediately use.**
 """
 
+
 def create_report_generator_agent() -> Agent:
     return Agent(
-        name="Compliance Report Generator Agent", 
+        name="Compliance Report Generator Agent",
         instructions=COMPLIANCE_REPORT_GENERATOR_INSTRUCTIONS,
         model="gpt-5-nano",
         output_type=ComplianceReport,

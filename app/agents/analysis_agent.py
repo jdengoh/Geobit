@@ -1,36 +1,41 @@
 # analysis_agent.py
 import enum
-from pydantic import BaseModel
+
 from agents import Agent
+from pydantic import BaseModel
+
 
 class ComplianceDomain(str, enum.Enum):
     PRIVACY = "privacy"
-    MINOR_PROTECTION = "minor_protection" 
+    MINOR_PROTECTION = "minor_protection"
     CONTENT_REGULATION = "content_regulation"
     DATA_LOCALIZATION = "data_localization"
     CHILD_SAFETY = "child_safety"
     FINANCIAL = "financial"
     OTHER = "other"
 
+
 class RegulationInfo(BaseModel):
     name: str
     """Name of the regulation (exact or descriptive)"""
-    
+
     jurisdiction: str
     """Geographic scope (Utah, California, European Union, etc.)"""
-    
+
     domain: ComplianceDomain
     """Primary compliance domain"""
+
 
 class AnalysisResult(BaseModel):
     regulations_found: list[RegulationInfo] = []
     """List of regulations identified in the feature"""
-    
+
     summary: str = ""
     """Brief summary of compliance requirements"""
-    
+
     jurisdictions: list[str] = []
     """All jurisdictions mentioned"""
+
 
 ANALYSIS_AGENT_INSTRUCTIONS = """
 You are an Analysis Agent for TikTok's geo-compliance detection system.
@@ -45,14 +50,14 @@ EXTRACTION TARGETS:
 
 REGULATION MAPPING:
 - Utah Social Media Regulation Act → minor_protection, Utah
-- California SB976 → minor_protection, California  
+- California SB976 → minor_protection, California
 - GDPR → privacy, European Union
 - CCPA → privacy, California
 - Federal CSAM/NCMEC requirements → child_safety, United States
 
 JURISDICTION STANDARDIZATION:
 - Utah → "Utah"
-- California → "California" 
+- California → "California"
 - EU/European → "European Union"
 - US/Federal → "United States"
 - Country codes → Full country names
@@ -67,6 +72,7 @@ DOMAIN CLASSIFICATION:
 
 OUTPUT: Extract all regulations mentioned and provide structured information with jurisdiction and domain classification.
 """
+
 
 def create_analysis_agent() -> Agent:
     return Agent(

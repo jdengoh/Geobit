@@ -1,17 +1,30 @@
-from enum import StrEnum
 import json
+import logging
+from enum import StrEnum
 from typing import Any, AsyncGenerator, List, Optional
 
-from agents import AgentUpdatedStreamEvent, MessageOutputItem, RawResponsesStreamEvent, RunContextWrapper, RunItemStreamEvent, Runner, TResponseInputItem, ToolCallItem, ToolCallOutputItem
-from pydantic import BaseModel
-from app.agents.classifier_agent import create_classifier_agent
-from app.agents.report_generator_agent import create_report_generator_agent
-from app.agents.analysis_agent import create_analysis_agent
+from agents import (
+    AgentUpdatedStreamEvent,
+    MessageOutputItem,
+    RawResponsesStreamEvent,
+    RunContextWrapper,
+    RunItemStreamEvent,
+    Runner,
+    ToolCallItem,
+    ToolCallOutputItem,
+    TResponseInputItem,
+)
+
 # from app.agents.triage import create_triage_agent
 from openai.types.responses import ResponseContentPartDoneEvent, ResponseTextDeltaEvent
+from pydantic import BaseModel
 
-import logging
+from app.agents.analysis_agent import create_analysis_agent
+from app.agents.classifier_agent import create_classifier_agent
+from app.agents.report_generator_agent import create_report_generator_agent
+
 logger = logging.getLogger(__name__)
+
 
 class EventType(StrEnum):
     DELTA_TEXT_EVENT = "delta_text_event"
@@ -22,21 +35,28 @@ class EventType(StrEnum):
     TERMINATING_EVENT = "terminating_event"
     ERROR_EVENT = "error_event"
 
+
 class AgentResponse(BaseModel):
     """Pydantic model for agent response structure"""
+
     event_type: EventType
     agent_name: str
-    history: Optional[List[Any]]  # You might want to create a more specific type for history items
+    history: Optional[
+        List[Any]
+    ]  # You might want to create a more specific type for history items
     message: Optional[str] = None
     data_type: Optional[str] = None
-    data: Optional[Any] = None  # Could be dict, str, or other types depending on use case
-    
+    data: Optional[Any] = (
+        None  # Could be dict, str, or other types depending on use case
+    )
+
 
 class RunContext:
     def __init__(self, current_agent: str | None = None, restart: bool = False):
         self.current_agent = current_agent
         self.restart = restart
         # self.data_type = data_type  # used to indicate the type of data being handled (e.g. "user_profile_data")
+
 
 class AgentService:
 
@@ -54,7 +74,7 @@ class AgentService:
             self.report_generator_agent.as_tool(
                 tool_name="report_generator_agent",
                 tool_description="Use this tool to generate a comprehensive compliance report after classification and analysis are complete.",
-            )
+            ),
         ]
 
         self.current_agent_mapping = {
@@ -63,7 +83,7 @@ class AgentService:
             "analysis_agent": self.analysis_agent,
             "report_generator_agent": self.report_generator_agent,
         }
-        
+
         # TODO: for a proper hand-off arhcitecutre
         # self.triage.handoffs = [self.compliance_classifier]
         # self.compliance_classifier.handoffs = [self.context_enricher, self.regulation_identifier]
@@ -81,7 +101,6 @@ class AgentService:
         }
         return agents
 
-
     async def run_streaming_workflow(
         self,
         user_input: str,
@@ -96,7 +115,9 @@ class AgentService:
         - passing in entire context back to the current agent when the workflow resumes
         """
 
-        logger.info(f"Running workflow with user_input: {user_input}, current_agent: {current_agent}")
+        logger.info(
+            f"Running workflow with user_input: {user_input}, current_agent: {current_agent}"
+        )
 
         try:
             wrapper = RunContextWrapper(
@@ -120,7 +141,9 @@ class AgentService:
 
             else:
                 logger.info("No existing history, starting new conversation.")
-                history: list[TResponseInputItem] = [{"content": user_input, "role": "user"}]
+                history: list[TResponseInputItem] = [
+                    {"content": user_input, "role": "user"}
+                ]
 
             # Always init
             tool_output = None
@@ -129,7 +152,9 @@ class AgentService:
             }
             message = ""
 
-            result = Runner.run_streamed(agent, input=history, context=wrapper, max_turns=20)
+            result = Runner.run_streamed(
+                agent, input=history, context=wrapper, max_turns=20
+            )
 
             logger.info("Runner started, streaming events...")
 
@@ -181,7 +206,9 @@ class AgentService:
                 elif isinstance(
                     event, AgentUpdatedStreamEvent
                 ):  # agent that is started / handed off to, e.g. triage_agent during init
-                    wrapper.context.current_agent = event.new_agent.name  # set in context
+                    wrapper.context.current_agent = (
+                        event.new_agent.name
+                    )  # set in context
                     current_agent = event.new_agent.name
                     response_dict = {
                         "event_type": EventType.NEW_AGENT_EVENT,
@@ -212,28 +239,25 @@ class AgentService:
 
                         yield AgentResponse(**response_dict)
 
-
                     # other type for evemt.item: ToolCallItem, ToolCallOutputItem, MessageOutputItem, HandoffCallItem, HandoffOutputItem
                     elif isinstance(event.item, ToolCallOutputItem):  # tool call output
-                            # TODO: check for custom handling?
-                            tool_output = event.item.output
-                            tool_output_dict = json.loads(tool_output)
-                            response_dict = {
-                                "event_type": EventType.TOOL_CALL_OUTPUT_EVENT,
-                                "message": None,
-                                # TODO: shall we use data_type
-                                # "data_type": wrapper.context.data_type,  # set by the individual agent during runtime
-                                "data_type": None,
-                                "data": tool_output_dict,
-                                "history": None,
-                                "agent_name": event.item.agent.name,  # agent that called the tool
-                            }
-                            wrapper.context.data_type = None
+                        # TODO: check for custom handling?
+                        tool_output = event.item.output
+                        tool_output_dict = json.loads(tool_output)
+                        response_dict = {
+                            "event_type": EventType.TOOL_CALL_OUTPUT_EVENT,
+                            "message": None,
+                            # TODO: shall we use data_type
+                            # "data_type": wrapper.context.data_type,  # set by the individual agent during runtime
+                            "data_type": None,
+                            "data": tool_output_dict,
+                            "history": None,
+                            "agent_name": event.item.agent.name,  # agent that called the tool
+                        }
+                        wrapper.context.data_type = None
 
-                            # yield "Tool call output"
-                            yield AgentResponse(**response_dict)
-
-
+                        # yield "Tool call output"
+                        yield AgentResponse(**response_dict)
 
                     # elif isinstance(event.item, MessageOutputItem):
                     if isinstance(event.item, MessageOutputItem):
@@ -261,7 +285,6 @@ class AgentService:
                 "agent_name": current_agent,
                 # "memo": memo.model_dump(),
             }
-
 
             yield AgentResponse(**response_dict)
 

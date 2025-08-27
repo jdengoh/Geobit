@@ -1,11 +1,9 @@
 import json
-from typing import AsyncGenerator, Optional
-
-from pydantic import BaseModel
-from fastapi.responses import StreamingResponse
-
-from fastapi import APIRouter, Depends, HTTPException
 import logging
+from typing import AsyncGenerator
+
+from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +12,7 @@ router = APIRouter()
 from app.core.dependencies import get_agent_service
 from app.schemas.agent import AgentRequest
 from app.services.agent_service import AgentService
+
 
 @router.get("/agents", summary="List Agents")
 async def list_agents():
@@ -35,13 +34,12 @@ async def list_agents():
 
 @router.post("/analyze", summary="Analyze Feature for Geo-Compliance Requirements")
 async def analyze_feature_compliance(
-    request: AgentRequest,
-    agent_service: AgentService = Depends(get_agent_service)
+    request: AgentRequest, agent_service: AgentService = Depends(get_agent_service)
 ):
     logger.info(f"Received compliance analysis request: {request}")
-    
+
     feature_text = f"Title: {request.title}\nDescription: {request.description}"
-    
+
     async def response_generator() -> AsyncGenerator[bytes, None]:
         try:
             async for chunk in agent_service.run_streaming_workflow(
@@ -52,23 +50,23 @@ async def analyze_feature_compliance(
                 yield chunk.model_dump_json() + "\n"
         except Exception as exc:
             error_response = {
-                "agent_name": "triage_agent", 
+                "agent_name": "triage_agent",
                 "event_type": "ERROR",
-                "data": {"type": exc.__class__.__name__, "message": str(exc)}
+                "data": {"type": exc.__class__.__name__, "message": str(exc)},
             }
             yield json.dumps(error_response) + "\n"
 
     return StreamingResponse(response_generator(), media_type="application/x-ndjson")
 
 
-#TODO: non-streaming
+# TODO: non-streaming
 # @router.post("/analyze", summary="Analyze Feature for Geo-Compliance Requirements")
 # async def analyze_feature_compliance(
 #     request: AgentRequest,
 #     agent_service: AgentService = Depends(get_agent_service)
 # ):
 #     logger.info(f"Received compliance analysis request: {request}")
-    
+
 #     # Format as user message
 #     feature_text = f"Title: {request.title}\nDescription: {request.description}"
 

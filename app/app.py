@@ -5,7 +5,6 @@ from fastapi.concurrency import asynccontextmanager
 from fastapi.params import Depends
 
 from app.api import agent
-
 from app.config import CONFIG_AGENT_SERVICE
 from app.core.config import Settings, get_settings
 from app.services.agent_service import AgentService

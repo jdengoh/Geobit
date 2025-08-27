@@ -1,22 +1,16 @@
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import (
-    DECIMAL,
-    Boolean,
     DateTime,
 )
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import (
-    ForeignKey,
-    Integer,
     String,
-    Text,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.database.enums import UserType
 
