@@ -4,10 +4,10 @@ from fastapi import APIRouter, FastAPI
 from fastapi.concurrency import asynccontextmanager
 from fastapi.params import Depends
 
-from app.api import (
-    login,
-)
+from app.api import agent
+from app.config import CONFIG_AGENT_SERVICE
 from app.core.config import Settings, get_settings
+from app.services.agent_service import AgentService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -30,6 +30,8 @@ async def lifespan(app: FastAPI):
     """Application lifespan event handler."""
     logger.info("Starting application...")
 
+    setattr(app.state, CONFIG_AGENT_SERVICE, AgentService())
+
     # TODO: Any client initialization can be done here
     # s = get_settings()
 
@@ -40,10 +42,10 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Fastapi-Template", lifespan=lifespan)
+    app = FastAPI(title="geobit", lifespan=lifespan)
 
     # Setup routers
-    routers = [router, login.router]
+    routers = [router, agent.router]
     for r in routers:
         app.include_router(r)
 

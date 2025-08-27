@@ -1,16 +1,20 @@
 [project]
-name = "fastapi-template"
+name = "geobit-backend"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "asyncpg>=0.30.0",
     "fastapi>=0.116.1",
-    "pydantic>=2.11.7",
+    "openai-agents>=0.2.9",
     "pydantic-settings>=2.10.1",
     "pyyaml>=6.0.2",
     "rich>=14.1.0",
-    "sqlalchemy>=2.0.42",
+    "sqlalchemy>=2.0.43",
     "uvicorn>=0.35.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
 ]

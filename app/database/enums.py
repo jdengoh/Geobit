@@ -10,6 +10,3 @@ class UserType(Enum):
 
     ADMIN = "admin"
     USER = "user"
-
-
-    

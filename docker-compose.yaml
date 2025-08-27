@@ -1,6 +1,6 @@
 services:
-  fastapi-template:
-    container_name: fastapi-template
+  geobit:
+    container_name: geobit
     build:
       context: .
       dockerfile: Dockerfile
@@ -19,12 +19,12 @@ services:
       start_period: 10s
     restart: unless-stopped
     networks:
-      - fastapi-template-network
+      - geobit-network
 
 networks:
-  fastapi-template-network:
-    name: fastapi-template-network
+  geobit-network:
+    name: geobit-network
     driver: bridge
-  fastapi-template-infra-network:
-    name: fastapi-template-infra-network
-    driver: bridge 
+  geobit-infra-network:
+    name: geobit-infra-network
+    driver: bridge
