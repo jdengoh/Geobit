@@ -26,7 +26,6 @@ import re
 from pydantic import BaseModel
 
 
-
 """
 Tag derivation used by the Analysis Planner.
 - Maps jargon terms -> semantic tags
