@@ -22,4 +22,3 @@ services:
     restart: "no"
     healthcheck:
       disable: true
-

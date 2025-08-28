@@ -2,18 +2,18 @@
 Jargon Agent with Web Search Agent as a Tool.
 """
 
+import logging
 from typing import List
+
 from agents import Agent, RunContextWrapper, function_tool
+
 from app.agent.schemas.agents import StateContext
 from app.agent.schemas.jargons import (
     JargonDetail,
     JargonQueryResult,
-    FeatureArtifact,
     StandardizedFeature,
 )
 from app.agent.web_search_agent import create_web_search_agent
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,6 @@ async def query_jargon_database(
     return ctx.context.jargon_translation.model_dump_json()
 
 
-
 def jargon_agent_prompt(
     context_wrapper: RunContextWrapper[StateContext], agent: Agent[StateContext]
 ) -> str:
@@ -98,21 +97,17 @@ def jargon_agent_prompt(
     """
 
 
-
 def create_jargon_agent():
     """Create the Jargon Agent with Web Search Agent as a tool."""
     web_search_agent = create_web_search_agent()
     web_search_tool = web_search_agent.as_tool(
         tool_name="web_search_agent",
-        tool_description="Searches for and summarizes a list of jargon terms. Input a list of strings."
+        tool_description="Searches for and summarizes a list of jargon terms. Input a list of strings.",
     )
     return Agent(
         name="Jargon Translation Agent",
         instructions=jargon_agent_prompt,
-        tools=[
-            query_jargon_database,
-            web_search_tool
-        ],
+        tools=[query_jargon_database, web_search_tool],
         output_type=StandardizedFeature,
         model="gpt-5-nano",
     )

@@ -3,6 +3,7 @@ Web Search Agent with Parallel Web Search Tool.
 """
 
 import asyncio
+import logging
 import os
 import re
 from typing import List
@@ -16,8 +17,8 @@ from app.agent.schemas.jargons import (
     Source,
 )
 
-import logging
 logger = logging.getLogger(__name__)
+
 
 # Helper functions for data processing
 def _format_serper_results(response_data: dict, query: str) -> str:
@@ -57,8 +58,7 @@ async def _get_llm_summary(client: AsyncOpenAI, term: str, raw_results: str) -> 
     """
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
+            model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -144,7 +144,9 @@ async def multi_serper_search(
             if term_detail.term not in searched_terms_set
         ]
 
-    logger.info(f"✅ Updated context: {ctx.context.jargon_translation.model_dump_json()}")
+    logger.info(
+        f"✅ Updated context: {ctx.context.jargon_translation.model_dump_json()}"
+    )
 
     return processed_results
 

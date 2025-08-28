@@ -142,7 +142,7 @@ class AgentService:
                 "report_generator_agent",
             }
             message = ""
-            
+
             with trace("agent_service.run_streaming_workflow"):
                 result = Runner.run_streamed(
                     agent, input=history, context=wrapper, max_turns=20
@@ -232,7 +232,9 @@ class AgentService:
                             yield AgentResponse(**response_dict)
 
                         # other type for evemt.item: ToolCallItem, ToolCallOutputItem, MessageOutputItem, HandoffCallItem, HandoffOutputItem
-                        elif isinstance(event.item, ToolCallOutputItem):  # tool call output
+                        elif isinstance(
+                            event.item, ToolCallOutputItem
+                        ):  # tool call output
                             # TODO: check for custom handling?
                             tool_output = event.item.output
                             tool_output_dict = json.loads(tool_output)
