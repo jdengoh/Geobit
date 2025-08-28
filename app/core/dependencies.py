@@ -8,7 +8,6 @@ from app.services.agent_service import AgentService
 # Define dependencies here
 
 
-
 def get_agent_service(request: Request) -> AgentService:
 
     agent_service: AgentService = getattr(request.app.state, CONFIG_AGENT_SERVICE, None)
