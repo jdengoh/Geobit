@@ -92,16 +92,12 @@ def derive_text_tags(text: str) -> Dict[str, List[str]]:
     must = {t for t in tags if t in CRITICAL}
     nice = tags - must
     return {"must": _sorted(must), "nice": _sorted(nice)}
-
-def merge_tag_sets(a: Dict[str, List[str]], b: Dict[str, List[str]]) -> Dict[str, List[str]]:
+def merge_tag_sets(a, b):
     am, an = set(a.get("must", [])), set(a.get("nice", []))
     bm, bn = set(b.get("must", [])), set(b.get("nice", []))
-    # anything critical goes to must; dedupe + sort
-    must = (am | bm) | (an | bn & set())  # keep simple; must stays must
+    must = am | bm
     nice = (an | bn) - must
-    return {"must": _sorted(must), "nice": _sorted(nice)}
-
-
+    return {"must": sorted(must), "nice": sorted(nice)}
 
 """
 Schemas used by the Analysis Agent.

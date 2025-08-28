@@ -14,6 +14,10 @@
 
 ## Getting Started <a id="getting-started"></a>
 
+1. Create the venv in the project root folder, activate it. Run uv sync
+2. Change directory to agents folder. Run Export OPENAI_API_KEY=YOUR_API_KEY SERPER_API_KEY=YOUR_API_KEY. Ensure that it is single line!
+3. Run the the agents with python3 ./jargon_agent.py
+
 ### Prerequisites <a id="prerequisites"></a>
 
 - [Python 3.13 or higher](https://www.python.org/downloads/)
