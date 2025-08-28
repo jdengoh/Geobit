@@ -45,7 +45,7 @@ async def analyze_feature_compliance(
             async for chunk in agent_service.run_streaming_workflow(
                 user_input=feature_text,
                 history=request.history,
-                current_agent="classifier_agent",
+                current_agent="jargon_agent",
             ):
                 yield chunk.model_dump_json() + "\n"
         except Exception as exc:
