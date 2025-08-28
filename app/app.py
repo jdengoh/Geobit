@@ -4,10 +4,12 @@ from fastapi import APIRouter, FastAPI
 from fastapi.concurrency import asynccontextmanager
 from fastapi.params import Depends
 
-from app.api import agent
+from app.api import agent, jargon
 from app.config import CONFIG_AGENT_SERVICE
 from app.core.config import Settings, get_settings
 from app.services.agent_service import AgentService
+from app.database.db import close_db_client
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -45,8 +47,13 @@ def create_app() -> FastAPI:
     app = FastAPI(title="geobit", lifespan=lifespan)
 
     # Setup routers
-    routers = [router, agent.router]
+    routers = [router, agent.router, jargon.router]
     for r in routers:
         app.include_router(r)
 
+    
+    @app.on_event("shutdown")
+    async def _shutdown():
+        await close_db_client()
     return app
+

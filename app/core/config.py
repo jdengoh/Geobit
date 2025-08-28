@@ -46,7 +46,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    PROJECT_NAME: str | None
+    PROJECT_NAME: str | None = "geobit"
 
     # Auth Configuration
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
@@ -77,11 +77,13 @@ class Settings(BaseSettings):
 
     # DB Config
     # - Currently, this is configured to use Supabase's PostgreSQL database.
-    POSTGRES_SERVER: str
-    POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str = ""
-    POSTGRES_DB: str = ""
+    # POSTGRES_SERVER: str
+    # POSTGRES_PORT: int = 5432
+    # POSTGRES_USER: str
+    # POSTGRES_PASSWORD: str = ""
+    # POSTGRES_DB: str = ""
+    MONGODB_URI: str
+    MONGODB_DB_NAME: str
 
     @computed_field  # type: ignore[prop-decorator]
     @property
