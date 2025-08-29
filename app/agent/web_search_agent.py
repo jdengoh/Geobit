@@ -172,47 +172,13 @@ Once you receive the results from the tool, they will be in the form of a list o
 IMMEDIATELY RETURN this list of `JargonSearchDetail` objects as your final output, no need to add any extra text or commentary.
 
 """
-def web_search_agent_prompt_retriever(context_wrapper, agent) -> str:
-    """Instructions for the web search agent."""
-    return """
-You are a Web Search Agent specialized in finding and processing definitions for technical terms.
-
-Your sole task is to identify individual jargon terms from the provided input and use the `multi_serper_search` tool to get their definitions.
-
-**Instructions:**
-- Identify and list all distinct jargon terms.
-- **Do not** combine multiple terms into a single string.
-- The `multi_serper_search` tool expects a list of strings (e.g., `terms=["term1", "term2"]`).
-
-**Example:**
-If the user's request is "Find the definitions for CustomAPI and XRAY", your tool call must be:
-`multi_serper_search(terms=["CustomAPI", "XRAY"])`
-
-Once you receive the results from the tool, they will be in the form of a list of `JargonSearchDetail` objects, each containing:
-- `term`: The jargon term.
-- `definition`: A summarized definition of the term.
-
-IMMEDIATELY RETURN this list of `JargonSearchDetail` objects as your final output, no need to add any extra text or commentary.
-
-"""
-
 
 def create_web_search_agent():
     """Create the Web Search Agent with parallel search and summarization capability."""
     return Agent(
         name="Web Search Agent",
-        instructions=web_search_agent_prompt_retriever,
-        tools=[multi_serper_search],
-        output_type=List[JargonSearchDetail],
-        model="gpt-5-nano",
-    )
-
-def create_web_search_agent_retriever():
-    """Create the Web Search Agent with parallel search and summarization capability."""
-    return Agent(
-        name="Web Search Agent",
         instructions=web_search_agent_prompt,
         tools=[multi_serper_search],
-        output_type=List[Evidence],
+        output_type=List[JargonSearchDetail],
         model="gpt-5-nano",
     )
