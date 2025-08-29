@@ -15,10 +15,12 @@ class FEUI(BaseModel):
     regulationTag: Optional[str] = None
 
 class FEEnvelope(BaseModel):
-    feature_id: str
+    feature_id: str               # UUID as string (stable key)
+    session_id: Optional[str] = None 
+    db_id: Optional[str] = None       
     standardized_name: str
     standardized_description: str
-    decision: str                  # reviewer decision
+    decision: str
     confidence: float
     justification: str
     conditions: List[str] = []

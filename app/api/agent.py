@@ -18,6 +18,7 @@ from app.agent.schemas.agents import StateContext
 from app.agent.schemas.analysis import AnalysisFindings, AnalysisPlan, Evidence,Finding,OpenQuestion
 from app.agent.summariser_agent import run_summariser
 from app.agent.review_agent import run_reviewer
+from app.repo.fe_repo import insert_fe_envelope
 
 
 def _jsonl(d: dict) -> bytes:
@@ -82,8 +83,9 @@ async def analyze_stream(payload: dict, demo: bool = True):
         ctx.feature_description = payload.get("standardized_description") or ""
 
         # Stage markers (nice for FE progress UI)
-        yield _jsonl({"event":"stage","stage":"pre_scan","message":"Pre-scan starting","terminating":False})
+        
         yield _jsonl({"event":"stage","stage":"jargon","message":"Jargon expanding","terminating":False})
+        yield _jsonl({"event":"stage","stage":"pre_scan","message":"Pre-scan starting","terminating":False})
         yield _jsonl({"event":"stage","stage":"analysis","message":"Planning + synthesis","terminating":False})
 
         # ---- DEMO PIPELINE (until retrieval is wired) ----
@@ -140,6 +142,19 @@ async def analyze_stream(payload: dict, demo: bool = True):
 
         yield _jsonl({"event":"stage","stage":"summarise","message":"Formatting final UI payload","terminating":False})
         fe = await run_summariser(ctx)          # reads ctx.decision_record + ctx.feature_*
+        # 🔐 persist and echo IDs back to FE
+        try:
+            db_id = await insert_fe_envelope(fe.model_dump(), ctx.session_id)
+            # print("fe type:", type(fe))
+            # print("fe module:", fe.__class__.__module__)
+            # print("fe fields:", list(fe.model_fields.keys()))
+            fe = fe.model_copy(update={
+                    "session_id": ctx.session_id,
+                    "db_id": db_id,
+                })
+        except Exception:
+            logger.exception("Failed to save FEEnvelope")
+
 
         # FINAL payload (FE listens for this)
         yield _jsonl({"event":"final","stage":"summarise","payload":fe.model_dump(), "terminating":True})

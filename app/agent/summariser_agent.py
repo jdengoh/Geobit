@@ -8,7 +8,7 @@ Summariser Agent
 from __future__ import annotations
 from typing import List, Optional
 import re
-
+import uuid
 from pydantic import BaseModel, Field
 from app.agent.schemas.agents import StateContext     # your shared pipeline state
 from app.agent.schemas.reviews import DecisionRecord  # decision from Reviewer
@@ -118,7 +118,8 @@ async def run_summariser(ctx: StateContext) -> FEEnvelope:
     Fallback: if missing, emit an 'insufficient_info' envelope.
     """
     dr: Optional[DecisionRecord] = getattr(ctx, "decision_record", None)
-    feature_id = getattr(ctx, "session_id", "unknown-session")
+    feature_id = str(uuid.uuid4()) 
+
     name = ctx.feature_name or "Untitled Feature"
     desc = ctx.feature_description or ""
 
