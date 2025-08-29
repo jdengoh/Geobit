@@ -2,11 +2,13 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from app.agent.schemas.reviews import DecisionRecord
+from schemas.reviews import DecisionRecord
 
-from app.agent.schemas.analysis import AnalysisFindings, AnalysisPlan, Evidence
+from schemas.analysis import AnalysisFindings, AnalysisPlan, Evidence
 
-from app.agent.schemas.jargons import JargonQueryResult
+from schemas.jargons import JargonQueryResult
+
+from schemas.pre_screen_result import PreScreenResult
 
 
 class StateContext(BaseModel):
@@ -26,3 +28,4 @@ class StateContext(BaseModel):
     retrieved_evidence: List[Evidence] = []
     analysis_findings: Optional[AnalysisFindings] = None
     decision_record: Optional[DecisionRecord] = None
+    prescreening_result: Optional[PreScreenResult] = None
