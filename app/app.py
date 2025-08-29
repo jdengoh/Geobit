@@ -4,6 +4,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.concurrency import asynccontextmanager
 from fastapi.params import Depends
 
+from fastapi.middleware.cors import CORSMiddleware
 from app.api import agent, jargon
 from app.config import CONFIG_AGENT_SERVICE
 from app.core.config import Settings, get_settings
@@ -43,17 +44,28 @@ async def lifespan(app: FastAPI):
     logger.info("Application stopped")
 
 
+
 def create_app() -> FastAPI:
     app = FastAPI(title="geobit", lifespan=lifespan)
 
-    # Setup routers
+    # --- CORS ---
+    settings = get_settings()
+    print("CORS allow_origins:", settings.all_cors_origins)  # helpful in dev
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.all_cors_origins,  # e.g. ["http://localhost:3000"]
+        allow_credentials=False,                  # set True only if you use cookies
+        allow_methods=["*"],                      # includes OPTIONS
+        allow_headers=["*"],                      # allow Content-Type, etc.
+    )
+
+    # Routers
     routers = [router, agent.router, jargon.router]
     for r in routers:
         app.include_router(r)
 
-    
     @app.on_event("shutdown")
     async def _shutdown():
         await close_db_client()
-    return app
 
+    return app

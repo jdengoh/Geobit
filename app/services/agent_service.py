@@ -20,6 +20,7 @@ from agents import (
 from openai.types.responses import ResponseContentPartDoneEvent, ResponseTextDeltaEvent
 from pydantic import BaseModel
 
+from app.agent.analysis_agent import create_analysis_planner, create_analysis_synthesizer
 from app.agent.jargen_agent import create_jargon_agent
 from app.agent.analysis_agent_alvin import (
     StateContext as AnalysisStateContext,
@@ -34,6 +35,8 @@ from app.agent.analysis_agent_alvin import (
 from app.agent.retrieval_agent import create_retrieval_agent, retrieve_evidence
 from app.agent.reviewer_agent import create_reviewer_agent, review_findings
 from app.agent.summarizer_agent import create_summarizer_agent, summarize
+from app.agent.schemas.agents import StateContext
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +51,13 @@ class EventType(StrEnum):
     ERROR_EVENT = "error_event"
 
 
-class StateContext(BaseModel):
-    """Context object for carrying state through the pipeline"""
+# class StateContext(BaseModel):
+#     """Context object for carrying state through the pipeline"""
 
-    session_id: str
-    current_agent: str
-    jargon_translation: Optional[dict] = None
-    sources: Optional[List[str]] = None
+#     session_id: str
+#     current_agent: str
+#     jargon_translation: Optional[dict] = None
+#     sources: Optional[List[str]] = None
 
 
 class AgentResponse(BaseModel):
@@ -83,6 +86,7 @@ class AgentService:
 
     def __init__(self):
         # self.triage = create_triage_agent()
+        # self.triage_agent = create_triage_agent()
         self.jargon_agent = create_jargon_agent()
         # analysis stack
         self.analysis_planner = create_analysis_planner()
@@ -91,12 +95,17 @@ class AgentService:
         self.reviewer_agent = create_reviewer_agent()
         self.summarizer_agent = create_summarizer_agent()
 
+
         self.current_agent_mapping = {
-            # "triage_agent": self.triage,
+            # "triage_agent": self.triage_agent,
             "jargon_agent": self.jargon_agent,
+            # "analysis_planner_agent": self.analysis_planner_agent,
+            # "analysis_synthesizer_agent": self.analysis_synthesizer_agent,
         }
 
-        # TODO: for a proper hand-off arhcitecutre
+        # self.jargon_agent.handoffs = [self.analysis_planner_agent]
+
+        # TODO: for a proper hand-off architecture
         # self.triage.handoffs = [self.compliance_classifier]
         # self.compliance_classifier.handoffs = [self.context_enricher, self.regulation_identifier]
         # self.context_enricher.handoffs = [self.regulation_identifier]
@@ -181,9 +190,10 @@ class AgentService:
 
         try:
             wrapper = RunContextWrapper(
-                context=RunContext(
+                context=StateContext(
                     current_agent=current_agent,
                     restart=False,
+                    session_id="test_test"
                 )
             )
 
