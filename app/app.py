@@ -5,7 +5,7 @@ from fastapi.concurrency import asynccontextmanager
 from fastapi.params import Depends
 
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import agent, fe, hitl, jargon
+from app.api import agent, fe, hitl, jargon, review
 from app.config import CONFIG_AGENT_SERVICE
 from app.core.config import Settings, get_settings
 from app.services.agent_service import AgentService
@@ -60,7 +60,7 @@ def create_app() -> FastAPI:
     )
 
     # Routers
-    routers = [router, agent.router, jargon.router,hitl.router,fe.router]
+    routers = [router, agent.router, jargon.router,hitl.router,fe.router,review.router]
     for r in routers:
         app.include_router(r)
 

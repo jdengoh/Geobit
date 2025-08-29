@@ -1,6 +1,6 @@
 # app/repositories/fe_repo.py
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 from bson import ObjectId
 from app.database.db import get_db
 
@@ -41,3 +41,33 @@ async def get_fe_envelope_by_feature_id(feature_id: str) -> Optional[Dict[str, A
         return None
     doc["db_id"] = str(doc.pop("_id"))
     return doc
+
+
+
+HITLAction = Literal["approve", "reject"]
+
+async def apply_hitl_to_fe(feature_id: str, action: HITLAction, reason: str, reviewer: Optional[str] = None) -> None:
+    """
+    Update FEEnvelope document to reflect HITL review.
+    - Sets ui.reviewedStatus = "human-reviewed"
+    - Normalizes ui.complianceFlag based on action:
+        approve -> "compliant"
+        reject  -> "no-compliance"
+    - Adds a hitl object with audit info.
+    """
+    db = get_db()
+    set_fields = {
+        "ui.reviewedStatus": "human-reviewed",
+        "hitl.last_action": action,
+        "hitl.last_reason": reason,
+        "hitl.reviewer": reviewer,
+        "hitl.updated_at": datetime.now(),
+        "updated_at": datetime.now(),
+    }
+    # Optional: reflect decision in UI flag (frontend reads complianceFlag)
+    set_fields["ui.complianceFlag"] = "compliant" if action == "approve" else "no-compliance"
+
+    await db["fe_envelopes"].update_one(
+        {"feature_id": feature_id},
+        {"$set": set_fields}
+    )
