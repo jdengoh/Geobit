@@ -2,13 +2,13 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from schemas.reviews import DecisionRecord
+from app.agent.schemas.reviews import DecisionRecord
 
-from schemas.analysis import AnalysisFindings, AnalysisPlan, Evidence
+from app.agent.schemas.analysis import AnalysisFindings, AnalysisPlan, Evidence
 
-from schemas.jargons import JargonQueryResult
+from app.agent.schemas.jargons import JargonQueryResult
 
-from schemas.pre_screen_result import PreScreenResult
+from app.agent.schemas.pre_screen_result import PreScreenResult
 
 
 class StateContext(BaseModel):
