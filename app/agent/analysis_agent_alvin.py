@@ -19,11 +19,16 @@ Key design choices:
 - Orchestrator glues components; Retrieval Agent handles KB/Web; Reviewer/HITL sits after Synthesizer.
 """
 import json
+import os
 import re
 from typing import Dict, List, Literal, Optional, Set
 
 from agents import Agent, ModelSettings, RunContextWrapper, Runner
+from dotenv import load_dotenv
 from pydantic import BaseModel
+
+load_dotenv()
+api_key = os.getenv('OPENAI_API_KEY')
 
 """
 Tag derivation used by the Analysis Planner.
