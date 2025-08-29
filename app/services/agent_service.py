@@ -20,7 +20,7 @@ from agents import (
 from openai.types.responses import ResponseContentPartDoneEvent, ResponseTextDeltaEvent
 from pydantic import BaseModel
 
-from app.agent.analysis_agent_alvin import create_analysis_planner, create_analysis_synthesizer
+from app.agent.analysis_agent import create_analysis_planner, create_analysis_synthesizer
 from app.agent.jargen_agent import create_jargon_agent
 from app.agent.schemas.agents import StateContext
 from app.agent.traige import create_triage_agent

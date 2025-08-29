@@ -6,6 +6,8 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
+from schemas.reviews import DecisionRecord
+
 from .analysis import AnalysisFindings, AnalysisPlan, Evidence
 
 from .jargons import JargonQueryResult
@@ -26,3 +28,4 @@ class StateContext(BaseModel):
     analysis_plan: Optional[AnalysisPlan] = None
     retrieved_evidence: List[Evidence] = []
     analysis_findings: Optional[AnalysisFindings] = None
+    decision_record: Optional[DecisionRecord] = None
