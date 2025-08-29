@@ -1,7 +1,3 @@
-"""
-Pydantic Schemas for Agent State and Context.
-"""
-
 from typing import Optional, List
 
 from pydantic import BaseModel

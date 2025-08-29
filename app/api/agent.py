@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends
@@ -12,7 +13,13 @@ router = APIRouter()
 from app.core.dependencies import get_agent_service
 from app.schemas.agent import AgentRequest
 from app.services.agent_service import AgentService
+from app.agent.schemas.stream import StreamEvent, FEEnvelope, FEUI
+from app.agent.schemas.agents import StateContext
+from app.agent.summariser_agent import run_summariser
 
+
+def _jsonl(d: dict) -> bytes:
+    return (json.dumps(d) + "\n").encode("utf-8")
 
 @router.get("/agents", summary="List Agents")
 async def list_agents():
@@ -59,6 +66,26 @@ async def analyze_feature_compliance(
     return StreamingResponse(response_generator(), media_type="application/x-ndjson")
 
 
+#-------------------------------Alvin's Code-----------------------------------#
+@router.post("/analyze/stream")
+async def analyze_stream(payload: dict):
+    async def gen():
+        ctx = StateContext(session_id=f"sess-{int(time.time())}", current_agent="orchestrator")
+        # (A) emit progress if you like
+        yield _jsonl(StreamEvent(event="stage", stage="pre_scan", message="Pre-scan starting").model_dump())
+        # run pre-scan later; for now just keep streaming demo statuses:
+        yield _jsonl(StreamEvent(event="stage", stage="jargon", message="Jargon expanding").model_dump())
+        yield _jsonl(StreamEvent(event="stage", stage="analysis", message="Planning + synthesis").model_dump())
+        yield _jsonl(StreamEvent(event="stage", stage="review", message="Reviewer scoring").model_dump())
+
+        # (B) Build the FE envelope using your summariser (this consumes reviewer output in ctx)
+        fe: FEEnvelope = await run_summariser(ctx)  # you already have DecisionRecord in ctx
+
+        # (C) FINAL event — frontend only cares about this for now
+        yield _jsonl(StreamEvent(event="final", stage="summarise", payload=fe.model_dump(), terminating=True).model_dump())
+
+    return StreamingResponse(gen(), media_type="application/x-ndjson")
+#-------------------------------Alvin's Code-----------------------------------#
 # TODO: non-streaming
 # @router.post("/analyze", summary="Analyze Feature for Geo-Compliance Requirements")
 # async def analyze_feature_compliance(
