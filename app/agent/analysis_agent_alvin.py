@@ -19,10 +19,11 @@ Key design choices:
 - Orchestrator glues components; Retrieval Agent handles KB/Web; Reviewer/HITL sits after Synthesizer.
 """
 from agents import Agent, Runner, RunContextWrapper, ModelSettings
-from typing import List, Optional
+from typing import List, Optional, Union
 import json
 from pydantic import BaseModel
-from schemas.agent import StateContext
+from schemas.jargons import JargonQueryResult
+from schemas.agents import StateContext
 from _tagging import jargon_to_tags, derive_text_tags, merge_tag_sets
 from schemas.analysis import RetrievalNeed, Evidence, Finding, OpenQuestion, AnalysisPlan, AnalysisFindings
 
@@ -35,20 +36,7 @@ Flow overview:
 3) Synthesizer outputs AnalysisFindings -> used by downstream Report/Reviewer.
 """
 
-
-
-# -------------------- Runtime state (light; persisted elsewhere) --------------------
-# class StateContext(BaseModel):
-#     session_id: str
-#     current_agent: str
-#     feature_name: Optional[str] = None
-#     feature_description: Optional[str] = None
-#     jargon_translation: Optional[dict] = None
-#     analysis_plan: Optional[AnalysisPlan] = None
-#     retrieved_evidence: List[Evidence] = []
-#     analysis_findings: Optional[AnalysisFindings] = None
-
-# -------------------- Prompts --------------------
+# ---------- prompts (unchanged except how we inject JSON) ----------
 def plan_prompt(_: RunContextWrapper[StateContext], __: Agent[StateContext]) -> str:
     return """
 You are a Compliance Analysis Planner.
@@ -81,13 +69,33 @@ Produce JSON:
    }
  ],
  "open_questions":[
-   "..."  // include any missing pieces that block a decision
+   {"text":"...","category":"policy|data|eng|product","blocking":true}
  ]
 }
 Rules:
 - USE EVERY evidence item if relevant; if an item is irrelevant, mention why in open_questions.
 - No extra text; JSON only.
 """.strip()
+
+# ---------- utilities ----------
+def _dump_jargon_for_prompt(jargon: any) -> str:
+    if jargon is None:
+        return "{}"
+    if hasattr(jargon, "model_dump"):
+        return json.dumps(jargon.model_dump(), sort_keys=True)
+    if isinstance(jargon, dict):
+        return json.dumps(jargon, sort_keys=True)
+    return "{}"
+
+def _tags_from(ctx: StateContext, payload: Optional[dict]) -> dict:
+    # Prefer ctx.jargon_translation; fallback to payload["jargon_result"]
+    jr = ctx.jargon_translation or (payload.get("jargon_result") if payload else None)
+    t1 = jargon_to_tags(jr)
+    name = ctx.feature_name or (payload.get("standardized_name") if payload else "")
+    desc = ctx.feature_description or (payload.get("standardized_description") if payload else "")
+    t2 = derive_text_tags(f"{name} {desc}")
+    return merge_tag_sets(t1, t2)
+
 
 
 # -------------------- Agents --------------------
@@ -138,40 +146,44 @@ def prepare_from_feature_payload(payload: dict) -> tuple[str, dict, dict]:
 
     return desc, jargon_dict, _sorted_dict(tags)
 
-async def run_planner(planner: Agent[StateContext], feature_payload: dict, ctx: StateContext) -> AnalysisPlan:
-    feature_desc, jargon_dict, tags = prepare_from_feature_payload(feature_payload)
-    ctx.feature_name = feature_payload.get("standardized_name")
-    ctx.feature_description = feature_desc
-    ctx.jargon_translation = jargon_dict
+# ---------- run steps ----------
+async def run_planner(planner: Agent[StateContext], feature_payload: Optional[dict], ctx: StateContext) -> AnalysisPlan:
+    feature_name = ctx.feature_name or (feature_payload or {}).get("standardized_name") or ""
+    feature_desc = ctx.feature_description or (feature_payload or {}).get("standardized_description") or feature_name
+    tags = _tags_from(ctx, feature_payload)
 
     prompt = (plan_prompt(None, None)
-        .replace("{{feature_name}}", ctx.feature_name or "")
-        .replace("{{feature_desc}}", feature_desc)
-        .replace("{{jargon_json}}", json.dumps(jargon_dict, sort_keys=True))
-        .replace("{{tags_json}}", json.dumps(tags, sort_keys=True)))
+              .replace("{{feature_name}}", feature_name)
+              .replace("{{feature_desc}}", feature_desc)
+              .replace("{{jargon_json}}", _dump_jargon_for_prompt(ctx.jargon_translation or (feature_payload or {}).get("jargon_result")))
+              .replace("{{tags_json}}", json.dumps(tags, sort_keys=True))
+             )
 
     res = await Runner.run(planner, prompt, context=ctx)
     ctx.analysis_plan = res.final_output
+    ctx.feature_name = feature_name
+    ctx.feature_description = feature_desc
     return res.final_output
 
-async def run_synthesizer(synth: Agent[StateContext], feature_payload: dict, evidence: List[Evidence], ctx: StateContext) -> AnalysisFindings:
-    feature_desc = ctx.feature_description or feature_payload.get("standardized_description") or ""
-    jargon_dict = ctx.jargon_translation or feature_payload.get("jargon_result") or {}
-
+async def run_synthesizer(synth: Agent[StateContext], feature_payload: Optional[dict], evidence: List[Evidence], ctx: StateContext) -> AnalysisFindings:
+    feature_desc = ctx.feature_description or (feature_payload or {}).get("standardized_description") or ""
+    jr_json = _dump_jargon_for_prompt(ctx.jargon_translation or (feature_payload or {}).get("jargon_result"))
     evidence_json = json.dumps([e.model_dump() if hasattr(e, "model_dump") else e for e in evidence], sort_keys=True)
 
     prompt = (synth_prompt(None, None)
-        .replace("{{feature_desc}}", feature_desc)
-        .replace("{{jargon_json}}", json.dumps(jargon_dict, sort_keys=True))
-        .replace("{{evidence_json}}", evidence_json))
+              .replace("{{feature_desc}}", feature_desc)
+              .replace("{{jargon_json}}", jr_json)
+              .replace("{{evidence_json}}", evidence_json))
 
     res = await Runner.run(synth, prompt, context=ctx)
     ctx.analysis_findings = res.final_output
     return res.final_output
 
-# -------------------- Local demo --------------------
+# ---------- Local demo ----------
 if __name__ == "__main__":
     import asyncio
+    from schemas.jargons import JargonQueryResult  # optional; used if populating ctx
+    from schemas.analysis import Evidence
 
     SAMPLE = {
       "standardized_name": "Curfew-based login restriction for under-18 users in Utah",
@@ -190,35 +202,46 @@ if __name__ == "__main__":
       }
     }
 
-    # Until Retrieval Agent is wired, mock stable evidence (keep order fixed)
     MOCK_EVIDENCE = [
         Evidence(kind="doc", ref="doc:utah_social_media_act#p12",
-                snippet="Utah Social Media Regulation Act requires parental consent and protections for minors, effective Mar 1, 2024."),
+                 snippet="Utah Social Media Regulation Act requires parental consent and protections for minors, effective Mar 1, 2024."),
         Evidence(kind="doc", ref="doc:utah_curfew_guidance#p3",
-                snippet="Curfew-based restrictions for minors must be enforced by age verification and jurisdictional targeting in Utah."),
+                 snippet="Curfew-based restrictions for minors must be enforced by age verification and jurisdictional targeting in Utah."),
         Evidence(kind="web", ref="https://ftc.gov/child-privacy",
-                snippet="FTC guidance emphasizes parental consent, age verification, data minimization for personalized or restricted experiences."),
+                 snippet="FTC guidance emphasizes parental consent, age verification, data minimization for personalized or restricted experiences."),
     ]
+
+    USE_PYDANTIC_JARGON_IN_CTX = True
 
     async def _demo():
         ctx = StateContext(session_id="demo-utah-001", current_agent="analysis")
+
+        if USE_PYDANTIC_JARGON_IN_CTX:
+            ctx.feature_name = SAMPLE["standardized_name"]
+            ctx.feature_description = SAMPLE["standardized_description"]
+            ctx.jargon_translation = JargonQueryResult(**SAMPLE["jargon_result"])
+            payload_for_planner = None
+        else:
+            payload_for_planner = SAMPLE
+
         planner = create_analysis_planner()
         synth   = create_analysis_synthesizer()
 
-        plan = await run_planner(planner, SAMPLE, ctx)
+        plan = await run_planner(planner, payload_for_planner, ctx)
         print("=== ANALYSIS PLAN ===")
         for i, need in enumerate(plan.retrieval_needs, 1):
             print(f"{i}. query={need.query} | must={need.must_tags} | nice={need.nice_to_have_tags}")
 
-        findings = await run_synthesizer(synth, SAMPLE, MOCK_EVIDENCE, ctx)
+        findings = await run_synthesizer(synth, payload_for_planner, MOCK_EVIDENCE, ctx)
         print("\n=== ANALYSIS FINDINGS ===")
         for f in findings.findings:
             print(f"- [{f.supports}] {f.key_point}")
             for ev in f.evidence:
                 print(f"   • {ev.kind}: {ev.ref}")
+
         if findings.open_questions:
             print("\nOpen Questions:")
             for q in findings.open_questions:
-                print(" -", q)
+                print(f" - ({q.category}, blocking={q.blocking}) {q.text}")
 
     asyncio.run(_demo())

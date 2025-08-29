@@ -1,40 +1,20 @@
-"""
-Lightweight mapping from detected jargon -> semantic tags.
-
-Why tags?
-- The Planner emits both a natural-language query and machine-usable tags.
-- Retrieval Agent can use tags to *filter* (must_tags) and *rerank* (nice_to_have_tags).
-"""
-
-from typing import Dict, Set, List 
+from typing import Dict, List, Set, Any
 import re
 
-
-"""
-Tag derivation used by the Analysis Planner.
-- Maps jargon terms -> semantic tags
-- Derives extra tags from free text (jurisdiction, curfew, minors, etc.)
-- Returns *sorted lists* to keep prompts stable across runs
-"""
-
-# Extend taxonomy
+# Canonical mappings
 CANON = {
     "ASL": {"child_safety", "age_gating"},
     "SNOWCAP": {"child_safety", "policy_framework"},
     "PF": {"personalization", "recommendation"},
     "CUSTOMAPI": {"data_integration", "internal_api"},
     "XRAY": {"test_management", "qa_process"},
-    # new:
     "GH": {"geo_enforcement", "jurisdiction"},
     "ECHOTRACE": {"audit_logging", "traceability"},
     "SHADOWMODE": {"silent_rollout", "analytics_only"},
-    # laws (bucket via searched_terms)
     "UTAH SOCIAL MEDIA REGULATION ACT": {"jurisdiction_ut", "state_law", "minor_protection"},
 }
-
 CRITICAL = {"child_safety", "age_gating", "personalization", "jurisdiction_ut"}
 
-# naive text tagger (fast + good enough for hackathon)
 PATTERNS = [
     (r"\butah\b", {"jurisdiction_ut", "state_law"}),
     (r"\bcurfew\b", {"curfew"}),
@@ -48,25 +28,43 @@ def _norm(s: str) -> str:
 def _sorted(xs: Set[str]) -> List[str]:
     return sorted(xs)
 
-def jargon_to_tags(jargon_json: dict) -> Dict[str, List[str]]:
+def _iter_terms(jargon: object) -> List[str]:
     """
-    Scan detected_terms + searched_terms and map to tags.
-    Return stable (sorted) lists for must/nice to reduce LLM variance.
+    Duck-type over either:
+      - a Pydantic model with .detected_terms / .searched_terms (JargonQueryResult), or
+      - a dict shaped like {'detected_terms': [...], 'searched_terms': [...]}, or
+      - None.
     """
-    tags: Set[str] = set()
-    for bucket in ("detected_terms", "searched_terms"):
-        for t in jargon_json.get(bucket, []):
-            key = _norm(t.get("term"))
-            tags |= CANON.get(key, set())
+    out: List[str] = []
+    if jargon is None:
+        return out
 
+    # Pydantic model case
+    if hasattr(jargon, "detected_terms") and hasattr(jargon, "searched_terms"):
+        for t in getattr(jargon, "detected_terms") or []:
+            out.append(getattr(t, "term", "") or "")
+        for t in getattr(jargon, "searched_terms") or []:
+            out.append(getattr(t, "term", "") or "")
+
+    # Dict case
+    elif isinstance(jargon, dict):
+        for t in (jargon.get("detected_terms") or []):
+            out.append((t.get("term") or ""))
+        for t in (jargon.get("searched_terms") or []):
+            # searched terms may be richer objects (term/definition/sources)
+            out.append((t.get("term") or ""))
+
+    return [s for s in out if s]  # drop empties
+
+def jargon_to_tags(jargon: object) -> Dict[str, List[str]]:
+    tags: Set[str] = set()
+    for term in _iter_terms(jargon):
+        tags |= CANON.get(_norm(term), set())
     must = {t for t in tags if t in CRITICAL}
     nice = tags - must
     return {"must": _sorted(must), "nice": _sorted(nice)}
 
 def derive_text_tags(text: str) -> Dict[str, List[str]]:
-    """
-    Pull additional tags directly from standardized_name/description text.
-    """
     tags: Set[str] = set()
     t = (text or "").lower()
     for rx, add in PATTERNS:
@@ -75,7 +73,8 @@ def derive_text_tags(text: str) -> Dict[str, List[str]]:
     must = {t for t in tags if t in CRITICAL}
     nice = tags - must
     return {"must": _sorted(must), "nice": _sorted(nice)}
-def merge_tag_sets(a, b):
+
+def merge_tag_sets(a: Dict[str, List[str]], b: Dict[str, List[str]]) -> Dict[str, List[str]]:
     am, an = set(a.get("must", [])), set(a.get("nice", []))
     bm, bn = set(b.get("must", [])), set(b.get("nice", []))
     must = am | bm

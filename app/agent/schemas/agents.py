@@ -6,7 +6,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from app.agent.schemas.analysis import AnalysisFindings, AnalysisPlan, Evidence
+from .analysis import AnalysisFindings, AnalysisPlan, Evidence
 
 from .jargons import JargonQueryResult
 
