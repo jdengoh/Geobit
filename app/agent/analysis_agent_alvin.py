@@ -18,12 +18,38 @@ Key design choices:
 - Output is *strict JSON* validated by Pydantic -> reliable, auditable.
 - Orchestrator glues components; Retrieval Agent handles KB/Web; Reviewer/HITL sits after Synthesizer.
 """
+import os
+import sys
+from pathlib import Path
 from typing import Dict, Set
 from agents import Agent, Runner, RunContextWrapper, ModelSettings
 from typing import List, Optional
 import json
 import re
 from pydantic import BaseModel
+
+# Load environment variables from .env file in the root directory
+try:
+    from dotenv import load_dotenv
+    # Get the path to the root directory (2 levels up from this file)
+    root_dir = Path(__file__).parent.parent.parent
+    env_file = root_dir / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+        print(f"✅ Loaded .env from: {env_file}")
+    else:
+        print(f"❌ .env file not found at: {env_file}")
+except ImportError:
+    print("❌ python-dotenv not installed")
+except Exception as e:
+    print(f"❌ Error loading .env: {e}")
+
+# Verify that the API key is loaded
+api_key = os.getenv("OPENAI_API_KEY")
+if api_key:
+    print(f"✅ OPENAI_API_KEY loaded (length: {len(api_key)})")
+else:
+    print("❌ OPENAI_API_KEY not found in environment variables")
 
 
 """

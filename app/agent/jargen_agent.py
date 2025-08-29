@@ -2,10 +2,36 @@
 Jargon Agent with Web Search Agent as a Tool.
 """
 
+import os
+import sys
+from pathlib import Path
 import logging
 from typing import List
 
 from agents import Agent, RunContextWrapper, function_tool
+
+# Load environment variables from .env file in the root directory
+try:
+    from dotenv import load_dotenv
+    # Get the path to the root directory (2 levels up from this file)
+    root_dir = Path(__file__).parent.parent.parent
+    env_file = root_dir / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+        print(f"✅ Loaded .env from: {env_file}")
+    else:
+        print(f"❌ .env file not found at: {env_file}")
+except ImportError:
+    print("❌ python-dotenv not installed")
+except Exception as e:
+    print(f"❌ Error loading .env: {e}")
+
+# Verify that the API key is loaded
+api_key = os.getenv("OPENAI_API_KEY")
+if api_key:
+    print(f"✅ OPENAI_API_KEY loaded (length: {len(api_key)})")
+else:
+    print("❌ OPENAI_API_KEY not found in environment variables")
 
 from app.agent.schemas.agents import StateContext
 from app.agent.schemas.jargons import (

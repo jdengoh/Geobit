@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.12.15",
     "fastapi>=0.116.1",
+    "motor>=3.7.1",
     "openai-agents>=0.2.9",
     "pydantic-settings>=2.10.1",
     "pyyaml>=6.0.2",

@@ -21,6 +21,19 @@ from openai.types.responses import ResponseContentPartDoneEvent, ResponseTextDel
 from pydantic import BaseModel
 
 from app.agent.jargen_agent import create_jargon_agent
+from app.agent.analysis_agent_alvin import (
+    StateContext as AnalysisStateContext,
+    Evidence,
+    AnalysisPlan,
+    AnalysisFindings,
+    create_analysis_planner,
+    create_analysis_synthesizer,
+    run_planner,
+    run_synthesizer,
+)
+from app.agent.retrieval_agent import create_retrieval_agent, retrieve_evidence
+from app.agent.reviewer_agent import create_reviewer_agent, review_findings
+from app.agent.summarizer_agent import create_summarizer_agent, summarize
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +84,12 @@ class AgentService:
     def __init__(self):
         # self.triage = create_triage_agent()
         self.jargon_agent = create_jargon_agent()
+        # analysis stack
+        self.analysis_planner = create_analysis_planner()
+        self.analysis_synth = create_analysis_synthesizer()
+        self.retrieval_agent = create_retrieval_agent()
+        self.reviewer_agent = create_reviewer_agent()
+        self.summarizer_agent = create_summarizer_agent()
 
         self.current_agent_mapping = {
             # "triage_agent": self.triage,
@@ -89,8 +108,58 @@ class AgentService:
         agents = {
             # TODO: no triage for now
             "Jargon Agent": self.jargon_agent,
+            "Analysis Planner": self.analysis_planner,
+            "Analysis Synthesizer": self.analysis_synth,
+            "Retrieval Agent": self.retrieval_agent,
+            "Reviewer Agent": self.reviewer_agent,
+            "Summarizer Agent": self.summarizer_agent,
         }
         return agents
+
+    async def run_deterministic_pipeline(self, *, feature_name: str, feature_description: str, session_id: str = "svc-001") -> dict:
+        """Non-streaming deterministic pipeline merged from pipeline_runner."""
+        ctx = AnalysisStateContext(session_id=session_id, current_agent="service-pipeline")
+
+        # 1) Jargon
+        from app.agent.jargen_agent import create_jargon_agent  # local import to avoid cycles
+        jargon_agent = self.jargon_agent
+        prompt = (
+            "You are given a feature artifact. Extract terms and follow instructions.\n"
+            f"FEATURE_NAME: {feature_name}\nFEATURE_DESC: {feature_description}\n"
+            "Return ONLY the StandardizedFeature JSON."
+        )
+        res = await Runner.run(jargon_agent, prompt, context=RunContextWrapper(context=ctx))
+        jargon_json = res.final_output.model_dump() if hasattr(res.final_output, "model_dump") else res.final_output
+
+        # 2) Planner
+        feature_payload = {
+            "standardized_name": feature_name,
+            "standardized_description": feature_description,
+            "jargon_result": jargon_json,
+        }
+        plan: AnalysisPlan = await run_planner(self.analysis_planner, feature_payload, ctx)
+
+        # 3) Retrieval
+        evidence: List[Evidence] = await retrieve_evidence(self.retrieval_agent, plan, ctx)
+
+        # 4) Synthesizer
+        findings: AnalysisFindings = await run_synthesizer(self.analysis_synth, feature_payload, evidence, ctx)
+
+        # 5) Reviewer
+        decision = review_findings(self.reviewer_agent, findings)
+
+        # 6) Summarizer
+        final_payload = {
+            "feature": {"name": feature_name, "description": feature_description},
+            "jargon_result": jargon_json,
+            "analysis_plan": plan.model_dump() if hasattr(plan, "model_dump") else plan,
+            "retrieved_evidence": [e.model_dump() if hasattr(e, "model_dump") else e for e in evidence],
+            "analysis_findings": findings.model_dump() if hasattr(findings, "model_dump") else findings,
+            "reviewer_decision": decision,
+        }
+        summary = summarize(self.summarizer_agent, final_payload)
+        # final_payload["summary"] = summary
+        return summary
 
     async def run_streaming_workflow(
         self,

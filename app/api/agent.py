@@ -59,6 +59,36 @@ async def analyze_feature_compliance(
     return StreamingResponse(response_generator(), media_type="application/x-ndjson")
 
 
+# @router.get("/pipeline", summary="Run Pipeline (without params)")
+# async def run_pipeline_demo(svc: AgentService = Depends(get_agent_service)):
+#     return await svc.run_deterministic_pipeline(
+#         feature_name="Demo Feature",
+#         feature_description="Demo description",
+#         session_id="api-pipeline-demo",
+#     )
+
+@router.get("/pipeline", summary="Run Pipeline (with params)")
+async def run_pipeline_q(
+    feature: str,
+    description: str,
+    svc: AgentService = Depends(get_agent_service),
+):
+    return await svc.run_deterministic_pipeline(
+        feature_name=feature,
+        feature_description=description,
+        session_id="api-pipeline",
+    )
+
+
+# @router.post("/pipeline", summary="Run Pipeline (without params)")
+# async def run_pipeline_endpoint(request: AgentRequest, svc: AgentService = Depends(get_agent_service)):
+#     return await svc.run_deterministic_pipeline(
+#         feature_name=request.title,
+#         feature_description=request.description,
+#         session_id="api-pipeline",
+#     )
+
+
 # TODO: non-streaming
 # @router.post("/analyze", summary="Analyze Feature for Geo-Compliance Requirements")
 # async def analyze_feature_compliance(
