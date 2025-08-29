@@ -22,6 +22,7 @@ from agents import Agent, Runner, RunContextWrapper, ModelSettings
 from typing import List, Optional
 import json
 from pydantic import BaseModel
+from schemas.agent import StateContext
 from _tagging import jargon_to_tags, derive_text_tags, merge_tag_sets
 from schemas.analysis import RetrievalNeed, Evidence, Finding, OpenQuestion, AnalysisPlan, AnalysisFindings
 
@@ -37,15 +38,15 @@ Flow overview:
 
 
 # -------------------- Runtime state (light; persisted elsewhere) --------------------
-class StateContext(BaseModel):
-    session_id: str
-    current_agent: str
-    feature_name: Optional[str] = None
-    feature_description: Optional[str] = None
-    jargon_translation: Optional[dict] = None
-    analysis_plan: Optional[AnalysisPlan] = None
-    retrieved_evidence: List[Evidence] = []
-    analysis_findings: Optional[AnalysisFindings] = None
+# class StateContext(BaseModel):
+#     session_id: str
+#     current_agent: str
+#     feature_name: Optional[str] = None
+#     feature_description: Optional[str] = None
+#     jargon_translation: Optional[dict] = None
+#     analysis_plan: Optional[AnalysisPlan] = None
+#     retrieved_evidence: List[Evidence] = []
+#     analysis_findings: Optional[AnalysisFindings] = None
 
 # -------------------- Prompts --------------------
 def plan_prompt(_: RunContextWrapper[StateContext], __: Agent[StateContext]) -> str:
