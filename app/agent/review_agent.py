@@ -71,9 +71,9 @@ from typing import List, Set, Tuple, Optional, Literal
 from urllib.parse import urlparse
 
 from agents import Agent, Runner, RunContextWrapper
-from schemas.agents import StateContext
-from schemas.analysis import AnalysisFindings, Evidence, Finding, OpenQuestion
-from schemas.reviews import DecisionRecord
+from app.agent.schemas.agents import StateContext
+from app.agent.schemas.analysis import AnalysisFindings, Evidence, Finding, OpenQuestion
+from app.agent.schemas.reviews import DecisionRecord
 
 # ----------------- Config: knobs for consistency -----------------
 ENFORCE_HITL: bool = False                # True => any blocking question forces HITL/insufficient_info

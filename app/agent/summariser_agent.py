@@ -10,9 +10,9 @@ from typing import List, Optional
 import re
 
 from pydantic import BaseModel, Field
-from schemas.agents import StateContext     # your shared pipeline state
-from schemas.reviews import DecisionRecord  # decision from Reviewer
-from schemas.analysis import AnalysisFindings
+from app.agent.schemas.agents import StateContext     # your shared pipeline state
+from app.agent.schemas.reviews import DecisionRecord  # decision from Reviewer
+from app.agent.schemas.analysis import AnalysisFindings
 
 # ---------- Frontend envelope (what FE renders) ----------
 class FEUI(BaseModel):

@@ -2,11 +2,11 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from schemas.reviews import DecisionRecord
+from app.agent.schemas.reviews import DecisionRecord
 
-from .analysis import AnalysisFindings, AnalysisPlan, Evidence
+from app.agent.schemas.analysis import AnalysisFindings, AnalysisPlan, Evidence
 
-from .jargons import JargonQueryResult
+from app.agent.schemas.jargons import JargonQueryResult
 
 
 class StateContext(BaseModel):

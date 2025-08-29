@@ -50,10 +50,10 @@ OUTPUTS OF THIS FILE
 from agents import Agent, Runner, RunContextWrapper
 from typing import List, Optional
 import json
-from .schemas.jargons import JargonQueryResult
-from schemas.agents import StateContext
-from _tagging import jargon_to_tags, derive_text_tags, merge_tag_sets
-from schemas.analysis import (
+from app.agent.schemas.jargons import JargonQueryResult
+from app.agent.schemas.agents import StateContext
+from app.agent._tagging import jargon_to_tags, derive_text_tags, merge_tag_sets
+from app.agent.schemas.analysis import (
     RetrievalNeed,
     Evidence,
     Finding,
