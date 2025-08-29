@@ -71,8 +71,10 @@ async def _single_request(
 ):
     """Handles a single Serper API search and summarization request."""
     api_key = os.getenv("SERPER_API_KEY")
+    api_key = None
     if not api_key:
-        return JargonSearchDetail(term=query, definition=None, sources=[])
+        logger.warning("❌ SERPER_API_KEY not set")
+        raise Exception("SERPER_API_KEY not set")
 
     payload = {"q": f"{query} in software development", "num": 3}
     headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}

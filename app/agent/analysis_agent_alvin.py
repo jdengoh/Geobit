@@ -25,6 +25,9 @@ import json
 import re
 from pydantic import BaseModel
 
+from app.agent.schemas.agents import StateContext
+from app.agent.schemas.analysis import AnalysisFindings, AnalysisPlan, Evidence
+
 
 """
 Tag derivation used by the Analysis Planner.
@@ -110,71 +113,71 @@ Flow overview:
 from pydantic import BaseModel
 from typing import List, Literal
 
-class RetrievalNeed(BaseModel):
-    """
-    A *targeted search instruction* for the Retrieval Agent.
-    - query: human-readable query (the Retrieval Agent can expand/split as needed)
-    - must_tags: hard filters the Retrieval Agent must honor (e.g., child_safety)
-    - nice_to_have_tags: soft filters; Retrieval Agent can use to rerank
-    """
-    query: str
-    must_tags: List[str] = []
-    nice_to_have_tags: List[str] = []
+# class RetrievalNeed(BaseModel):
+#     """
+#     A *targeted search instruction* for the Retrieval Agent.
+#     - query: human-readable query (the Retrieval Agent can expand/split as needed)
+#     - must_tags: hard filters the Retrieval Agent must honor (e.g., child_safety)
+#     - nice_to_have_tags: soft filters; Retrieval Agent can use to rerank
+#     """
+#     query: str
+#     must_tags: List[str] = []
+#     nice_to_have_tags: List[str] = []
 
-class Evidence(BaseModel):
-    """
-    One *cited snippet* returned by the Retrieval Agent.
-    - kind: 'doc' for KB hits or 'web' for online sources
-    - ref: 'doc:{id}#p12' or a URL
-    - snippet: short extract containing the relevant claim
-    """
-    kind: Literal["doc","web"]
-    ref: str
-    snippet: str
+# class Evidence(BaseModel):
+#     """
+#     One *cited snippet* returned by the Retrieval Agent.
+#     - kind: 'doc' for KB hits or 'web' for online sources
+#     - ref: 'doc:{id}#p12' or a URL
+#     - snippet: short extract containing the relevant claim
+#     """
+#     kind: Literal["doc","web"]
+#     ref: str
+#     snippet: str
 
-class Finding(BaseModel):
-    """
-    A *reasoned claim* about the feature, grounded in evidence.
-    - key_point: short factual statement
-    - supports: how the finding influences compliance decision
-      ('approve' reduces risk, 'reject' increases risk, 'uncertain' needs HITL)
-    - evidence: list of cited Evidence entries that support this finding
-    """
-    key_point: str
-    supports: Literal["approve","reject","uncertain"]
-    evidence: List[Evidence] = []
+# class Finding(BaseModel):
+#     """
+#     A *reasoned claim* about the feature, grounded in evidence.
+#     - key_point: short factual statement
+#     - supports: how the finding influences compliance decision
+#       ('approve' reduces risk, 'reject' increases risk, 'uncertain' needs HITL)
+#     - evidence: list of cited Evidence entries that support this finding
+#     """
+#     key_point: str
+#     supports: Literal["approve","reject","uncertain"]
+#     evidence: List[Evidence] = []
 
-class OpenQuestion(BaseModel):
-    text: str
-    category: Literal["policy","data","eng","product"] = "eng"
-    blocking: bool = True  # True => must resolve before auto-approve
-    suggested_retrieval: Optional[RetrievalNeed] = None
-class AnalysisPlan(BaseModel):
-    """
-    Planner output. The orchestrator forwards these needs to Retrieval Agent.
-    """
-    retrieval_needs: List[RetrievalNeed]
+# class OpenQuestion(BaseModel):
+#     text: str
+#     category: Literal["policy","data","eng","product"] = "eng"
+#     blocking: bool = True  # True => must resolve before auto-approve
+#     suggested_retrieval: Optional[RetrievalNeed] = None
+# class AnalysisPlan(BaseModel):
+#     """
+#     Planner output. The orchestrator forwards these needs to Retrieval Agent.
+#     """
+#     retrieval_needs: List[RetrievalNeed]
 
-class AnalysisFindings(BaseModel):
-    """
-    Synthesizer output. Downstream components (Reviewer / Report Agent) consume this.
-    - findings: structured, citable conclusions
-    - open_questions: questions that block a definitive decision (HITL trigger)
-    """
-    findings: List[Finding] 
-    open_questions: List[OpenQuestion] = []   
+# class AnalysisFindings(BaseModel):
+#     """
+#     Synthesizer output. Downstream components (Reviewer / Report Agent) consume this.
+#     - findings: structured, citable conclusions
+#     - open_questions: questions that block a definitive decision (HITL trigger)
+#     """
+#     findings: List[Finding] 
+#     open_questions: List[OpenQuestion] = []   
 
 
 # -------------------- Runtime state (light; persisted elsewhere) --------------------
-class StateContext(BaseModel):
-    session_id: str
-    current_agent: str
-    feature_name: Optional[str] = None
-    feature_description: Optional[str] = None
-    jargon_translation: Optional[dict] = None
-    analysis_plan: Optional[AnalysisPlan] = None
-    retrieved_evidence: List[Evidence] = []
-    analysis_findings: Optional[AnalysisFindings] = None
+# class StateContext(BaseModel):
+#     session_id: str
+#     current_agent: str
+#     feature_name: Optional[str] = None
+#     feature_description: Optional[str] = None
+#     jargon_translation: Optional[dict] = None
+#     analysis_plan: Optional[AnalysisPlan] = None
+#     retrieved_evidence: List[Evidence] = []
+#     analysis_findings: Optional[AnalysisFindings] = None
 
 # -------------------- Prompts --------------------
 def plan_prompt(_: RunContextWrapper[StateContext], __: Agent[StateContext]) -> str:
