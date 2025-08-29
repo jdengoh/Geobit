@@ -21,161 +21,59 @@ from analysis_agent_alvin import Evidence, RetrievalNeed
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from schemas.agents import StateContext
-from web_search_agent import create_web_search_agent_retriever
+from evidence_web_search_agent import create_legal_evidence_search_agent
 
 load_dotenv()
 api_key = os.getenv('OPENAI_API_KEY')
 # -------------------- Mock Knowledge Base --------------------
 # In production, this would connect to your actual KB/document system
-MOCK_KB_DOCS = {
-    "utah_social_media_act": {
-        "title": "Utah Social Media Regulation Act",
-        "content": "Utah Social Media Regulation Act requires parental consent and protections for minors, effective Mar 1, 2024. The act mandates age verification for users under 18 and requires platforms to implement curfew restrictions between 10:30 PM and 6:30 AM for minors without parental override.",
-        "tags": ["jurisdiction_ut", "state_law", "minor_protection", "child_safety", "age_gating", "curfew"]
-    },
-    "utah_curfew_guidance": {
-        "title": "Utah Minor Curfew Implementation Guidelines",
-        "content": "Curfew-based restrictions for minors must be enforced by age verification and jurisdictional targeting in Utah. Platforms must log all curfew-related actions for compliance auditing. Geographic enforcement should be precise to Utah boundaries only.",
-        "tags": ["curfew", "jurisdiction_ut", "minor_protection", "audit_logging", "geo_enforcement"]
-    },
-    "coppa_compliance": {
-        "title": "COPPA Compliance Guidelines",
-        "content": "Children's Online Privacy Protection Act requires verifiable parental consent for children under 13. Platforms must implement data minimization, provide clear privacy notices, and allow parents to review and delete their child's information.",
-        "tags": ["child_safety", "age_gating", "federal_law", "privacy", "parental_consent"]
-    },
-    "personalization_minor_rules": {
-        "title": "Personalization for Minors - Legal Framework",
-        "content": "Personalized content and recommendations for users under 18 require special consideration under various state laws. Default settings should prioritize safety over engagement. Algorithmic recommendations must be auditable and transparent.",
-        "tags": ["personalization", "minor_protection", "recommendation", "algorithm_transparency"]
-    },
-    "geo_enforcement_best_practices": {
-        "title": "Geographic Enforcement Best Practices",
-        "content": "Accurate geolocation is essential for jurisdiction-specific compliance. IP-based detection should be supplemented with additional signals. Cross-border users require careful handling to avoid over-enforcement.",
-        "tags": ["geo_enforcement", "jurisdiction", "technical_implementation"]
-    }
-}
+# MOCK_KB_DOCS = {
 
-# Mock web sources (in production, this would use real web search APIs)
-MOCK_WEB_SOURCES = [
-    {
-        "url": "https://ftc.gov/child-privacy",
-        "title": "FTC Child Privacy Guidelines",
-        "content": "FTC guidance emphasizes parental consent, age verification, data minimization for personalized or restricted experiences. Platforms should implement privacy-by-design principles for minor users.",
-        "tags": ["child_safety", "federal_guidance", "privacy", "age_verification"]
-    },
-    {
-        "url": "https://cdt.org/insights/state-social-media-laws-2024",
-        "title": "State Social Media Laws Analysis 2024",
-        "content": "Multiple states including Utah, Texas, and California have enacted social media regulations for minors. Common requirements include age verification, parental controls, and time-based restrictions.",
-        "tags": ["state_law", "minor_protection", "age_verification", "jurisdiction"]
-    },
-    {
-        "url": "https://nist.gov/privacy-framework/children-privacy",
-        "title": "NIST Privacy Framework for Children",
-        "content": "NIST recommends multi-layered age verification, granular parental controls, and comprehensive audit logging for children's online services. Technical safeguards should be the default, not opt-in.",
-        "tags": ["age_verification", "audit_logging", "technical_standards", "child_safety"]
-    }
-]
+# }
 
 
 # -------------------- Search Tools --------------------
-@function_tool
-def kb_search(query: str, must_tags: List[str] = None, nice_tags: List[str] = None, max_results: int = 3) -> List[Dict[str, Any]]:
-    """
-    Search KB documents and return matching results.
-    """
-    must_tags = set(must_tags or [])
-    nice_tags = set(nice_tags or [])
-    results = []
+# @function_tool
+# def kb_search(query: str, must_tags: List[str] = None, nice_tags: List[str] = None, max_results: int = 3) -> List[Dict[str, Any]]:
+#     """
+#     Search KB documents and return matching results.
+#     """
+#     must_tags = set(must_tags or [])
+#     nice_tags = set(nice_tags or [])
+#     results = []
     
-    for doc_id, doc in MOCK_KB_DOCS.items():
-        # Hard filter: document must have ALL must_tags
-        doc_tags = set(doc.get("tags", []))
-        if must_tags and not must_tags.issubset(doc_tags):
-            continue
+#     for doc_id, doc in MOCK_KB_DOCS.items():
+#         # Hard filter: document must have ALL must_tags
+#         doc_tags = set(doc.get("tags", []))
+#         if must_tags and not must_tags.issubset(doc_tags):
+#             continue
         
-        # Relevance scoring (simple keyword + tag matching)
-        query_lower = query.lower()
-        content_lower = doc["content"].lower()
-        title_lower = doc["title"].lower()
+#         # Relevance scoring (simple keyword + tag matching)
+#         query_lower = query.lower()
+#         content_lower = doc["content"].lower()
+#         title_lower = doc["title"].lower()
         
-        score = 0
-        # Keyword matching
-        if query_lower in content_lower:
-            score += 2
-        if query_lower in title_lower:
-            score += 3
-        # Tag bonuses
-        score += len(nice_tags.intersection(doc_tags))
+#         score = 0
+#         # Keyword matching
+#         if query_lower in content_lower:
+#             score += 2
+#         if query_lower in title_lower:
+#             score += 3
+#         # Tag bonuses
+#         score += len(nice_tags.intersection(doc_tags))
         
-        if score > 0:
-            results.append({
-                "doc_id": doc_id,
-                "title": doc["title"],
-                "content": doc["content"],
-                "score": score,
-                "tags": doc["tags"]
-            })
+#         if score > 0:
+#             results.append({
+#                 "doc_id": doc_id,
+#                 "title": doc["title"],
+#                 "content": doc["content"],
+#                 "score": score,
+#                 "tags": doc["tags"]
+#             })
     
-    # Sort by score and limit results
-    results.sort(key=lambda x: x["score"], reverse=True)
-    return results[:max_results]
-
-
-def web_search_tool() -> Tool:
-    """Search web sources for relevant information."""
-    
-    def web_search(query: str, must_tags: List[str] = None, nice_tags: List[str] = None, max_results: int = 2) -> List[Dict[str, Any]]:
-        """
-        Search web sources and return matching results.
-        In production, this would call actual web search APIs.
-        """
-        must_tags = set(must_tags or [])
-        nice_tags = set(nice_tags or [])
-        results = []
-        
-        for source in MOCK_WEB_SOURCES:
-            # Hard filter: source must have ALL must_tags
-            source_tags = set(source.get("tags", []))
-            if must_tags and not must_tags.issubset(source_tags):
-                continue
-            
-            # Relevance scoring
-            query_lower = query.lower()
-            content_lower = source["content"].lower()
-            title_lower = source["title"].lower()
-            
-            score = 0
-            if query_lower in content_lower:
-                score += 2
-            if query_lower in title_lower:
-                score += 3
-            score += len(nice_tags.intersection(source_tags))
-            
-            if score > 0:
-                results.append({
-                    "url": source["url"],
-                    "title": source["title"],
-                    "content": source["content"],
-                    "score": score,
-                    "tags": source["tags"]
-                })
-        
-        results.sort(key=lambda x: x["score"], reverse=True)
-        return results[:max_results]
-    
-    return Tool(
-        name="web_search",
-        description="Search web sources for relevant information",
-        function=web_search,
-        parameters={
-            "query": {"type": "string", "description": "Search query"},
-            "must_tags": {"type": "array", "items": {"type": "string"}, "description": "Required tags"},
-            "nice_tags": {"type": "array", "items": {"type": "string"}, "description": "Preferred tags"},
-            "max_results": {"type": "integer", "default": 2, "description": "Maximum results"}
-        }
-    )
-
+#     # Sort by score and limit results
+#     results.sort(key=lambda x: x["score"], reverse=True)
+#     return results[:max_results]
 
 # -------------------- Retrieval Agent --------------------
 def retrieval_prompt(_: RunContextWrapper[StateContext], __: Agent[StateContext]) -> str:
@@ -215,7 +113,7 @@ Rules:
 
 
 def create_retrieval_agent() -> Agent[StateContext]:
-    web_search_agent = create_web_search_agent_retriever()
+    web_search_agent = create_legal_evidence_search_agent()
     web_search_tool = web_search_agent.as_tool(
         tool_name="web_search_agent",
         tool_description="Searches for and summarizes a list of jargon terms. Input a list of strings.",
@@ -223,7 +121,7 @@ def create_retrieval_agent() -> Agent[StateContext]:
     return Agent[StateContext](
         name="Retrieval Agent (Rex)",
         instructions=retrieval_prompt,
-        tools=[kb_search, web_search_tool],
+        tools=[web_search_tool],
         output_type=List[Evidence],
         model="gpt-5-nano",
     )
@@ -251,35 +149,6 @@ async def run_retrieval_agent(
     return result.final_output
 
 
-# # -------------------- Integration Helper --------------------
-# def evidence_from_search_results(kb_results: List[Dict], web_results: List[Dict]) -> List[Evidence]:
-#     """
-#     Helper function to convert search results to Evidence objects.
-#     This can be used by the agent or as a fallback.
-#     """
-#     evidence = []
-    
-#     # Process KB results
-#     for result in kb_results:
-#         # Extract a relevant snippet (first 150 chars as example)
-#         snippet = result["content"][:150] + "..." if len(result["content"]) > 150 else result["content"]
-#         evidence.append(Evidence(
-#             kind="doc",
-#             ref=f"doc:{result['doc_id']}#content",
-#             snippet=snippet
-#         ))
-    
-#     # Process web results
-#     for result in web_results:
-#         snippet = result["content"][:150] + "..." if len(result["content"]) > 150 else result["content"]
-#         evidence.append(Evidence(
-#             kind="web",
-#             ref=result["url"],
-#             snippet=snippet
-#         ))
-    
-#     return evidence
-
 
 # -------------------- Demo/Test Function --------------------
 async def demo_retrieval():
@@ -288,19 +157,19 @@ async def demo_retrieval():
     # Sample retrieval needs from the planner
     sample_needs = [
         RetrievalNeed(
-            query="Utah curfew restrictions for minors social media",
-            must_tags=["jurisdiction_ut", "minor_protection"],
-            nice_to_have_tags=["curfew", "child_safety"]
+            query="Utah state-law guidance on age gating and login restrictions for minors; legal basis for curfew-based digital access controls",
+            must_tags=['child_safety', 'age_gating', 'personalization', 'jurisdiction_ut'],
+            nice_to_have_tags=['analytics_only', 'state_law', 'traceability', 'audit_logging']
         ),
         RetrievalNeed(
-            query="age verification requirements compliance",
-            must_tags=["child_safety"],
-            nice_to_have_tags=["age_gating", "federal_law"]
+            query="Legal and regulatory considerations for geofenced access controls inside Utah: privacy expectations, consent, and compliance within state borders",
+            must_tags=['child_safety', 'age_gating', 'personalization', 'jurisdiction_ut'],
+            nice_to_have_tags=['geo_enforcement', 'state_law', 'audit_logging', 'traceability']
         ),
         RetrievalNeed(
-            query="geographic enforcement jurisdictional boundaries",
-            must_tags=[],
-            nice_to_have_tags=["geo_enforcement", "jurisdiction"]
+            query="Best practices for auditing and logging during silent/shadow rollouts of minor-restriction features in Utah",
+            must_tags=['child_safety', 'age_gating', 'personalization', 'jurisdiction_ut'],
+            nice_to_have_tags=['silent_rollout', 'audit_logging', 'analytics_only', 'curfew', 'login_restriction', 'minor_protection']
         )
     ]
     
