@@ -18,13 +18,12 @@ Key design choices:
 - Output is *strict JSON* validated by Pydantic -> reliable, auditable.
 - Orchestrator glues components; Retrieval Agent handles KB/Web; Reviewer/HITL sits after Synthesizer.
 """
-from typing import Dict, Set
-from agents import Agent, Runner, RunContextWrapper, ModelSettings
-from typing import List, Optional
 import json
 import re
-from pydantic import BaseModel
+from typing import Dict, List, Literal, Optional, Set
 
+from agents import Agent, ModelSettings, RunContextWrapper, Runner
+from pydantic import BaseModel
 
 """
 Tag derivation used by the Analysis Planner.
@@ -106,9 +105,6 @@ Flow overview:
 2) Retrieval Agent returns a list of Evidence -> fed into Synthesizer.
 3) Synthesizer outputs AnalysisFindings -> used by downstream Report/Reviewer.
 """
-
-from pydantic import BaseModel
-from typing import List, Literal
 
 class RetrievalNeed(BaseModel):
     """
