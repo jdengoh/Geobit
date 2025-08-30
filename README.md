@@ -4,28 +4,37 @@ A modular, multi-agent FastAPI backend for geo-compliance and parental control f
 
 ## Table of Content
 
-- [GeoBit Backend](#geobit-backend)
-  - [Features](#features)
-  - [Project Structure](#project-structure)
-    - [Folder Structure:](#folder-structure-)
-    - [Agentic AI Structure](#agentic-ai-structure)
-  - [Setup](#setup)
-  - [API Endpoints](#api-endpoints)
-  - [Development](#development)
-  - [Docker](#docker)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Usage Example](#usage-example)
-  - [Agent Pipeline Overview](#agent-pipeline-overview)
+- [Features](#features)
+
+- [Project Structure](#project-structure)
+  - [Folder Structure:](#folder-structure-)
+  - [Agentic AI Structure](#agentic-ai-structure)
+- [Setup](#setup)
+- [API Endpoints](#api-endpoints)
+- [Development](#development)
+- [Docker](#docker)
+- [Contributing](#contributing)
+- [License](#license)
+- [Usage Example](#usage-example)
+- [Agent Pipeline Overview](#agent-pipeline-overview)
+
 
 ## Features
 
-- **FastAPI**-based REST API with streaming NDJSON endpoints
-- Modular agent pipeline: Pre-screen, Jargon, Planner, Retrieval, Synthesizer, Reviewer, Summariser
-- Async, streaming responses for real-time frontend updates
-- Pluggable agent architecture (LLM, deterministic, web search)
-- Environment variable and .env support
-- Docker and local development ready
+**Production-Ready Architecture**:
+
+- **FastAPI** asynchronous backend with streaming endpoints
+- **Singleton `agent_service`** initialized at application startup for optimal resource utilization
+- **Stateful agent persistence** eliminates redundant initialization overhead
+- **Dependency injection pattern** ensures consistent agent state across all API endpoints, as well as clean code practices
+- **Lifespan management** with proper service initialization and cleanup lifecycle
+- **Event-driven architecture** with comprehensive workflow state management
+
+**Multi-Agent Pipeline**:
+
+- Levarages multi-agent architecture with **OpenAI Agents SDK** integration for robust agent orchestration and tracing
+- **Modular agent design** with clear separation of concerns and pluggable components
+
 
 ## Project Structure
 
@@ -90,7 +99,7 @@ flowchart TD
   end
 
   %% === HITL GATE & LOOP ===
-  E{"HITL Decision Gate (TODO)"}
+  E{"HITL Decision Gate (*TO IMPLEMENT*)"}
   N["Triggers:<br>• confidence < τ<br>• blocking questions<br>• high-risk jurisdiction<br>• contradictions"]
   H["Human Reviewer (rationale captured)"]
 
@@ -168,6 +177,8 @@ See the [Environment Variables](#environment-variables-env) section below for de
 
 ### Running with Docker <a id="running-with-docker"></a>
 
+*NOTE: docker only runs for the backend, frontend has to be ran separately*
+
 On macOS or Linux, run:
 
 ```sh
@@ -208,14 +219,17 @@ BACKEND_CORS_ORIGINS=http://localhost:8000
 
 ## API Endpoints
 
-- `POST /analyze/stream` — Main streaming analysis endpoint (NDJSON)
-- `POST /analyze` — Non-streaming analysis (optional)
-- `GET /agents` — List available agents and their configs
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/analyze/stream` | `POST` | Main streaming analysis endpoint that processes feature specifications through the multi-agent pipeline and returns real-time results in NDJSON format |
+| `/agents` | `GET` | Retrieves a list of all available agents in the pipeline along with their configuration details and current status |
+
 
 ## Development
 
 - All agent logic is in `app/agent/` (each agent is modular and testable)
 - Add new agents by extending the agent pipeline and schemas
+- Workflow logic and agent orchestration will be handled in `AgentService` under `services/`
 - Use the `scripts/` folder for Docker and local startup scripts
 
 ## Agent Pipeline Overview
@@ -223,7 +237,7 @@ BACKEND_CORS_ORIGINS=http://localhost:8000
 1. **Pre-screen Agent**: Quickly filters out business-only or non-legal features.
 2. **Jargon Agent**: Expands acronyms and internal terms, queries web if needed.
 3. **Planner Agent**: Generates targeted retrieval needs for legal and compliance evidence.
-4. **Retrieval Agent**: Searches internal KB and web for evidence, using must/nice-to-have tags.
+4. **Retrieval Agent**: Searches internal KB and web for evidence
 5. **Synthesizer Agent**: Synthesizes findings and open questions from evidence.
 6. **Reviewer Agent**: Scores findings, applies deterministic rules, and flags for HITL if needed.
 7. **Summariser Agent**: Formats the final result for frontend consumption.
@@ -232,7 +246,12 @@ Each agent is modular and can be extended or replaced independently. For more de
 
 ## Contributor
 
-Built by BitStorm team (@jdengoh, @ChickenChiang, @alvintjw, @ZuyuanChong) for TikTok Techjam 2025
+Built by BitStorm team for TikTok Techjam 2025
+
+- @jdengoh
+- @ChickenChiang
+- @alvintjw
+- @ZuyuanChong
 
 ## License
 

@@ -97,19 +97,13 @@ class AgentService:
         self.review_agent = create_llm_reviewer()
 
 
-        self.current_agent_mapping = {
-            # "triage_agent": self.triage_agent,
-            "jargon_agent": self.jargon_agent,
-            # "analysis_planner_agent": self.analysis_planner_agent,
-            # "analysis_synthesizer_agent": self.analysis_synthesizer_agent,
-        }
+        # self.current_agent_mapping = {
+        #     # "triage_agent": self.triage_agent,
+        #     "jargon_agent": self.jargon_agent,
+        #     # "analysis_planner_agent": self.analysis_planner_agent,
+        #     # "analysis_synthesizer_agent": self.analysis_synthesizer_agent,
+        # }
 
-        # self.jargon_agent.handoffs = [self.analysis_planner_agent]
-
-        # TODO: for a proper hand-off architecture
-        # self.triage.handoffs = [self.compliance_classifier]
-        # self.compliance_classifier.handoffs = [self.context_enricher, self.regulation_identifier]
-        # self.context_enricher.handoffs = [self.regulation_identifier]
 
     def get_agent(self):
         """
@@ -117,6 +111,7 @@ class AgentService:
         """
         agents = {
             # TODO: no triage for now
+            "Pre-Screen Agent": self.pre_screen_agent,
             "Jargon Agent": self.jargon_agent,
             "Analysis Planner": self.analysis_planner,
             "Analysis Synthesizer": self.analysis_synth,
@@ -245,207 +240,209 @@ class AgentService:
             )
 
 
-    async def run_streaming_workflow(
-        self,
-        user_input: str,
-        history: list | None,
-        current_agent: str | None,
-    ) -> AsyncGenerator[Any, None]:
-        """
-        Main workflow (streaming) to run the agents with given user input, history, and current agent.
+    # TODO: more detailed streaming workflow if required in the future :D
+    
+    # async def run_streaming_workflow(
+    #     self,
+    #     user_input: str,
+    #     history: list | None,
+    #     current_agent: str | None,
+    # ) -> AsyncGenerator[Any, None]:
+    #     """
+    #     Main workflow (streaming) to run the agents with given user input, history, and current agent.
 
-        TODO: we can allow a flexible hand-off architecture in future
-        - can be achieved by saving the current agent
-        - passing in entire context back to the current agent when the workflow resumes
-        """
+    #     TODO: we can allow a flexible hand-off architecture in future
+    #     - can be achieved by saving the current agent
+    #     - passing in entire context back to the current agent when the workflow resumes
+    #     """
 
-        logger.info(
-            f"Running workflow with user_input: {user_input}, current_agent: {current_agent}"
-        )
+    #     logger.info(
+    #         f"Running workflow with user_input: {user_input}, current_agent: {current_agent}"
+    #     )
 
-        try:
-            wrapper = RunContextWrapper(
-                context=StateContext(
-                    current_agent=current_agent,
-                    feature_id="test_test",
-                )
-            )
+    #     try:
+    #         wrapper = RunContextWrapper(
+    #             context=StateContext(
+    #                 current_agent=current_agent,
+    #                 feature_id="test_test",
+    #             )
+    #         )
 
-            # TODO: future when we have more agents
-            # Init entry point agent
-            if current_agent:
-                agent = self.current_agent_mapping[current_agent]
-            else:
-                agent = self.jargon_agent
+    #         # TODO: future when we have more agents
+    #         # Init entry point agent
+    #         if current_agent:
+    #             agent = self.current_agent_mapping[current_agent]
+    #         else:
+    #             agent = self.jargon_agent
 
-            # If have existing history, append new user message to it, else create new
-            if history:
-                logger.info(f"Received existing history with {len(history)} items.")
-                history.append({"content": user_input, "role": "user"})
+    #         # If have existing history, append new user message to it, else create new
+    #         if history:
+    #             logger.info(f"Received existing history with {len(history)} items.")
+    #             history.append({"content": user_input, "role": "user"})
 
-            else:
-                logger.info("No existing history, starting new conversation.")
-                history: list[TResponseInputItem] = [
-                    {"content": user_input, "role": "user"}
-                ]
+    #         else:
+    #             logger.info("No existing history, starting new conversation.")
+    #             history: list[TResponseInputItem] = [
+    #                 {"content": user_input, "role": "user"}
+    #             ]
 
-            # Always init
-            tool_output = None
-            final_agents = {
-                "report_generator_agent",
-            }
-            message = ""
+    #         # Always init
+    #         tool_output = None
+    #         final_agents = {
+    #             "report_generator_agent",
+    #         }
+    #         message = ""
 
-            with trace("agent_service.run_streaming_workflow"):
-                result = Runner.run_streamed(
-                    agent, input=history, context=wrapper, max_turns=20
-                )
+    #         with trace("agent_service.run_streaming_workflow"):
+    #             result = Runner.run_streamed(
+    #                 agent, input=history, context=wrapper, max_turns=20
+    #             )
 
-                logger.info("Runner started, streaming events...")
+    #             logger.info("Runner started, streaming events...")
 
-                # Iterate through runner events
-                async for event in result.stream_events():
-                    if isinstance(event, RawResponsesStreamEvent):
-                        """
-                        Raw response event: raw events directly from the LLM, in OpenAI Response API format
-                        For all the events, use `event.type` to retrieve the type of event
-                        """
-                        data = event.data
-                        if isinstance(
-                            data, ResponseTextDeltaEvent
-                        ):  # streaming text of a single LLM output
-                            message += data.delta  # collect the word by word output
-                            response_dict = {
-                                "event_type": EventType.DELTA_TEXT_EVENT,
-                                "message": message,  # with latest delta message appended
-                                "delta_message": data.delta,  # latest delta message
-                                "data_type": None,
-                                "data": None,
-                                "history": None,
-                                "agent_name": current_agent,
-                            }
+    #             # Iterate through runner events
+    #             async for event in result.stream_events():
+    #                 if isinstance(event, RawResponsesStreamEvent):
+    #                     """
+    #                     Raw response event: raw events directly from the LLM, in OpenAI Response API format
+    #                     For all the events, use `event.type` to retrieve the type of event
+    #                     """
+    #                     data = event.data
+    #                     if isinstance(
+    #                         data, ResponseTextDeltaEvent
+    #                     ):  # streaming text of a single LLM output
+    #                         message += data.delta  # collect the word by word output
+    #                         response_dict = {
+    #                             "event_type": EventType.DELTA_TEXT_EVENT,
+    #                             "message": message,  # with latest delta message appended
+    #                             "delta_message": data.delta,  # latest delta message
+    #                             "data_type": None,
+    #                             "data": None,
+    #                             "history": None,
+    #                             "agent_name": current_agent,
+    #                         }
 
-                            # yield "Raw event TextDelta"
-                            yield AgentResponse(**response_dict)
+    #                         # yield "Raw event TextDelta"
+    #                         yield AgentResponse(**response_dict)
 
-                        elif isinstance(
-                            data, ResponseContentPartDoneEvent
-                        ):  # the end of a text output response
-                            message += "\n"
-                            response_dict = {
-                                "event_type": EventType.COMPLETED_TEXT_EVENT,
-                                "message": message,
-                                "delta_message": None,
-                                "data_type": None,
-                                "data": None,
-                                "history": None,
-                                "agent_name": current_agent,
-                            }
+    #                     elif isinstance(
+    #                         data, ResponseContentPartDoneEvent
+    #                     ):  # the end of a text output response
+    #                         message += "\n"
+    #                         response_dict = {
+    #                             "event_type": EventType.COMPLETED_TEXT_EVENT,
+    #                             "message": message,
+    #                             "delta_message": None,
+    #                             "data_type": None,
+    #                             "data": None,
+    #                             "history": None,
+    #                             "agent_name": current_agent,
+    #                         }
 
-                            # yield "Raw event ContentPartDone"
-                            yield AgentResponse(**response_dict)
+    #                         # yield "Raw event ContentPartDone"
+    #                         yield AgentResponse(**response_dict)
 
-                        else:  # other types of events
-                            pass
+    #                     else:  # other types of events
+    #                         pass
 
-                    elif isinstance(
-                        event, AgentUpdatedStreamEvent
-                    ):  # agent that is started / handed off to, e.g. triage_agent during init
-                        wrapper.context.current_agent = (
-                            event.new_agent.name
-                        )  # set in context
-                        current_agent = event.new_agent.name
-                        response_dict = {
-                            "event_type": EventType.NEW_AGENT_EVENT,
-                            "message": message,
-                            "data_type": None,
-                            "data": None,
-                            "history": None,
-                            "agent_name": current_agent,  # name of the agent that is handed off to
-                        }
+    #                 elif isinstance(
+    #                     event, AgentUpdatedStreamEvent
+    #                 ):  # agent that is started / handed off to, e.g. triage_agent during init
+    #                     wrapper.context.current_agent = (
+    #                         event.new_agent.name
+    #                     )  # set in context
+    #                     current_agent = event.new_agent.name
+    #                     response_dict = {
+    #                         "event_type": EventType.NEW_AGENT_EVENT,
+    #                         "message": message,
+    #                         "data_type": None,
+    #                         "data": None,
+    #                         "history": None,
+    #                         "agent_name": current_agent,  # name of the agent that is handed off to
+    #                     }
 
-                        yield AgentResponse(**response_dict)
+    #                     yield AgentResponse(**response_dict)
 
-                    elif isinstance(
-                        event, RunItemStreamEvent
-                    ):  # Higher level event, inform me when an item has been fully generated, tool call
-                        """
-                        e.g. handoff: after all raw events, handoff_requested -> handoff_occured (include 'source_agent', and target agent 'raw_item.output.assistant')
-                        """
-                        if isinstance(event.item, ToolCallItem):
-                            response_dict = {
-                                "event_type": EventType.TOOL_CALL_EVENT,
-                                "message": event.item.raw_item.name,
-                                "data_type": None,
-                                "data": None,
-                                "history": None,
-                                "agent_name": event.item.agent.name,  # agent that called the tool
-                            }
+    #                 elif isinstance(
+    #                     event, RunItemStreamEvent
+    #                 ):  # Higher level event, inform me when an item has been fully generated, tool call
+    #                     """
+    #                     e.g. handoff: after all raw events, handoff_requested -> handoff_occured (include 'source_agent', and target agent 'raw_item.output.assistant')
+    #                     """
+    #                     if isinstance(event.item, ToolCallItem):
+    #                         response_dict = {
+    #                             "event_type": EventType.TOOL_CALL_EVENT,
+    #                             "message": event.item.raw_item.name,
+    #                             "data_type": None,
+    #                             "data": None,
+    #                             "history": None,
+    #                             "agent_name": event.item.agent.name,  # agent that called the tool
+    #                         }
 
-                            yield AgentResponse(**response_dict)
+    #                         yield AgentResponse(**response_dict)
 
-                        # other type for evemt.item: ToolCallItem, ToolCallOutputItem, MessageOutputItem, HandoffCallItem, HandoffOutputItem
-                        elif isinstance(
-                            event.item, ToolCallOutputItem
-                        ):  # tool call output
-                            # TODO: check for custom handling?
-                            tool_output = event.item.output
-                            tool_output_dict = json.loads(tool_output)
-                            response_dict = {
-                                "event_type": EventType.TOOL_CALL_OUTPUT_EVENT,
-                                "message": None,
-                                # TODO: shall we use data_type
-                                # "data_type": wrapper.context.data_type,  # set by the individual agent during runtime
-                                "data_type": None,
-                                "data": tool_output_dict,
-                                "history": None,
-                                "agent_name": event.item.agent.name,  # agent that called the tool
-                            }
-                            wrapper.context.data_type = None
+    #                     # other type for evemt.item: ToolCallItem, ToolCallOutputItem, MessageOutputItem, HandoffCallItem, HandoffOutputItem
+    #                     elif isinstance(
+    #                         event.item, ToolCallOutputItem
+    #                     ):  # tool call output
+    #                         # TODO: check for custom handling?
+    #                         tool_output = event.item.output
+    #                         tool_output_dict = json.loads(tool_output)
+    #                         response_dict = {
+    #                             "event_type": EventType.TOOL_CALL_OUTPUT_EVENT,
+    #                             "message": None,
+    #                             # TODO: shall we use data_type
+    #                             # "data_type": wrapper.context.data_type,  # set by the individual agent during runtime
+    #                             "data_type": None,
+    #                             "data": tool_output_dict,
+    #                             "history": None,
+    #                             "agent_name": event.item.agent.name,  # agent that called the tool
+    #                         }
+    #                         wrapper.context.data_type = None
 
-                            # yield "Tool call output"
-                            yield AgentResponse(**response_dict)
+    #                         # yield "Tool call output"
+    #                         yield AgentResponse(**response_dict)
 
-                        # elif isinstance(event.item, MessageOutputItem):
-                        if isinstance(event.item, MessageOutputItem):
-                            print("message output item")
-                            pass
-                    else:
-                        print("unknown event: ", event)
-                        pass
+    #                     # elif isinstance(event.item, MessageOutputItem):
+    #                     if isinstance(event.item, MessageOutputItem):
+    #                         print("message output item")
+    #                         pass
+    #                 else:
+    #                     print("unknown event: ", event)
+    #                     pass
 
-            # TODO: more dynamic agent routing
-            # current_agent = result.current_agent.name
-            # # If current agent is one of the final_agents, or restart flag set to True, change current agent to triage_agent
-            # if current_agent in final_agents or wrapper.context.restart:
-            #     current_agent = "triage_agent"
-            #     wrapper.context.restart = False
+    #         # TODO: more dynamic agent routing
+    #         # current_agent = result.current_agent.name
+    #         # # If current agent is one of the final_agents, or restart flag set to True, change current agent to triage_agent
+    #         # if current_agent in final_agents or wrapper.context.restart:
+    #         #     current_agent = "triage_agent"
+    #         #     wrapper.context.restart = False
 
-            # TODO: handle cases where handmade cache should be removed
-            history = result.to_input_list()
+    #         # TODO: handle cases where handmade cache should be removed
+    #         history = result.to_input_list()
 
-            last_message = history[-1]["content"][0]["text"]
+    #         last_message = history[-1]["content"][0]["text"]
 
-            response_dict = {
-                "event_type": EventType.TERMINATING_EVENT,  # the end of the conversation
-                "message": None,
-                "data_type": None,
-                "data": None,
-                "history": history,  # the consolidated history of the whole call
-                "agent_name": current_agent,
-                # "memo": memo.model_dump(),
-            }
+    #         response_dict = {
+    #             "event_type": EventType.TERMINATING_EVENT,  # the end of the conversation
+    #             "message": None,
+    #             "data_type": None,
+    #             "data": None,
+    #             "history": history,  # the consolidated history of the whole call
+    #             "agent_name": current_agent,
+    #             # "memo": memo.model_dump(),
+    #         }
 
-            yield AgentResponse(**response_dict)
+    #         yield AgentResponse(**response_dict)
 
-        except Exception as exc:
-            logger.error(f"Error during run_workflow: {exc}", exc_info=True)
-            response_dict = {
-                "event_type": EventType.ERROR_EVENT,
-                "message": None,
-                "data_type": None,
-                "data": {"type": exc.__class__.__name__, "message": str(exc)},
-                "history": None,
-                "agent_name": None,
-            }
-            yield AgentResponse(**response_dict)
+    #     except Exception as exc:
+    #         logger.error(f"Error during run_workflow: {exc}", exc_info=True)
+    #         response_dict = {
+    #             "event_type": EventType.ERROR_EVENT,
+    #             "message": None,
+    #             "data_type": None,
+    #             "data": {"type": exc.__class__.__name__, "message": str(exc)},
+    #             "history": None,
+    #             "agent_name": None,
+    #         }
+    #         yield AgentResponse(**response_dict)

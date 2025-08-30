@@ -58,31 +58,31 @@ async def list_agents():
     }
 
 
-@router.post("/analyze", summary="Analyze Feature for Geo-Compliance Requirements ")
-async def analyze_feature_compliance(
-    request: AgentRequest, agent_service: AgentService = Depends(get_agent_service)
-):
-    logger.info(f"Received compliance analysis request: {request}")
+# @router.post("/analyze", summary="Analyze Feature for Geo-Compliance Requirements ")
+# async def analyze_feature_compliance(
+#     request: AgentRequest, agent_service: AgentService = Depends(get_agent_service)
+# ):
+#     logger.info(f"Received compliance analysis request: {request}")
 
-    feature_text = f"Title: {request.title}\nDescription: {request.description}"
+#     feature_text = f"Title: {request.title}\nDescription: {request.description}"
 
-    async def response_generator() -> AsyncGenerator[bytes, None]:
-        try:
-            async for chunk in agent_service.run_streaming_workflow(
-                user_input=feature_text,
-                history=request.history,
-                current_agent="jargon_agent",
-            ):
-                yield chunk.model_dump_json() + "\n"
-        except Exception as exc:
-            error_response = {
-                "agent_name": "triage_agent",
-                "event_type": "ERROR",
-                "data": {"type": exc.__class__.__name__, "message": str(exc)},
-            }
-            yield json.dumps(error_response) + "\n"
+#     async def response_generator() -> AsyncGenerator[bytes, None]:
+#         try:
+#             async for chunk in agent_service.run_streaming_workflow(
+#                 user_input=feature_text,
+#                 history=request.history,
+#                 current_agent="jargon_agent",
+#             ):
+#                 yield chunk.model_dump_json() + "\n"
+#         except Exception as exc:
+#             error_response = {
+#                 "agent_name": "triage_agent",
+#                 "event_type": "ERROR",
+#                 "data": {"type": exc.__class__.__name__, "message": str(exc)},
+#             }
+#             yield json.dumps(error_response) + "\n"
 
-    return StreamingResponse(response_generator(), media_type="application/x-ndjson")
+#     return StreamingResponse(response_generator(), media_type="application/x-ndjson")
 
 
 #-------------------------------Zuyuan's Code-----------------------------------#
