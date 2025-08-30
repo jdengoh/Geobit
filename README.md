@@ -190,7 +190,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
 ## Environment Variables (.env)
 
-Create a `.env` file in the project root with the following content:
+Create a `.env` file in the respective project root with the following content:
 
 ```env
 OPENAI_API_KEY=your-key
@@ -200,6 +200,10 @@ MONGODB_DB_NAME=geobit
 
 FRONTEND_HOST=http://localhost:3000
 BACKEND_CORS_ORIGINS=http://localhost:8000
+```
+
+```frontend env (inside compliance dashboard folder)
+NEXT_PUBLIC_API_BASE=http://localhost:8000
 ```
 
 - Replace `your-key` with your actual API keys.
