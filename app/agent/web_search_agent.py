@@ -12,8 +12,8 @@ import aiohttp
 from agents import Agent, RunContextWrapper, function_tool
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
-from schemas.evidence import Evidence, Finding, RetrievalNeed
-from schemas.jargons import JargonSearchDetail, Source
+from app.agent.schemas.evidence import Evidence, Finding, RetrievalNeed
+from app.agent.schemas.jargons import JargonSearchDetail, Source
 
 load_dotenv()
 

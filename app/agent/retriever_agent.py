@@ -17,11 +17,11 @@ import sys
 from typing import Any, Dict, List, Optional, Set
 
 from agents import Agent, RunContextWrapper, Runner, Tool, function_tool
-from analysis_agent_alvin import Evidence, RetrievalNeed
+from app.agent.analysis_agent import Evidence, RetrievalNeed
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from schemas.agents import StateContext
-from evidence_web_search_agent import create_legal_evidence_search_agent
+from app.agent.schemas.agents import StateContext
+from app.agent.evidence_web_search_agent import create_legal_evidence_search_agent
 
 load_dotenv()
 api_key = os.getenv('OPENAI_API_KEY')
@@ -151,45 +151,45 @@ async def run_retrieval_agent(
 
 
 # -------------------- Demo/Test Function --------------------
-async def demo_retrieval():
-    """Demo the retrieval agent with sample retrieval needs."""
+# async def demo_retrieval():
+#     """Demo the retrieval agent with sample retrieval needs."""
     
-    # Sample retrieval needs from the planner
-    sample_needs = [
-        RetrievalNeed(
-            query="Utah state-law guidance on age gating and login restrictions for minors; legal basis for curfew-based digital access controls",
-            must_tags=['child_safety', 'age_gating', 'personalization', 'jurisdiction_ut'],
-            nice_to_have_tags=['analytics_only', 'state_law', 'traceability', 'audit_logging']
-        ),
-        RetrievalNeed(
-            query="Legal and regulatory considerations for geofenced access controls inside Utah: privacy expectations, consent, and compliance within state borders",
-            must_tags=['child_safety', 'age_gating', 'personalization', 'jurisdiction_ut'],
-            nice_to_have_tags=['geo_enforcement', 'state_law', 'audit_logging', 'traceability']
-        ),
-        RetrievalNeed(
-            query="Best practices for auditing and logging during silent/shadow rollouts of minor-restriction features in Utah",
-            must_tags=['child_safety', 'age_gating', 'personalization', 'jurisdiction_ut'],
-            nice_to_have_tags=['silent_rollout', 'audit_logging', 'analytics_only', 'curfew', 'login_restriction', 'minor_protection']
-        )
-    ]
+#     # Sample retrieval needs from the planner
+#     sample_needs = [
+#         RetrievalNeed(
+#             query="Utah state-law guidance on age gating and login restrictions for minors; legal basis for curfew-based digital access controls",
+#             must_tags=['child_safety', 'age_gating', 'personalization', 'jurisdiction_ut'],
+#             nice_to_have_tags=['analytics_only', 'state_law', 'traceability', 'audit_logging']
+#         ),
+#         RetrievalNeed(
+#             query="Legal and regulatory considerations for geofenced access controls inside Utah: privacy expectations, consent, and compliance within state borders",
+#             must_tags=['child_safety', 'age_gating', 'personalization', 'jurisdiction_ut'],
+#             nice_to_have_tags=['geo_enforcement', 'state_law', 'audit_logging', 'traceability']
+#         ),
+#         RetrievalNeed(
+#             query="Best practices for auditing and logging during silent/shadow rollouts of minor-restriction features in Utah",
+#             must_tags=['child_safety', 'age_gating', 'personalization', 'jurisdiction_ut'],
+#             nice_to_have_tags=['silent_rollout', 'audit_logging', 'analytics_only', 'curfew', 'login_restriction', 'minor_protection']
+#         )
+#     ]
     
-    ctx = StateContext(session_id="demo-retrieval-001", current_agent="retrieval")
-    retrieval_agent = create_retrieval_agent()
+#     ctx = StateContext(session_id="demo-retrieval-001", current_agent="retrieval")
+#     retrieval_agent = create_retrieval_agent()
     
-    print("=== RETRIEVAL DEMO ===")
-    print(f"Processing {len(sample_needs)} retrieval needs...")
+#     print("=== RETRIEVAL DEMO ===")
+#     print(f"Processing {len(sample_needs)} retrieval needs...")
     
-    evidence_list = await run_retrieval_agent(retrieval_agent, sample_needs, ctx)
+#     evidence_list = await run_retrieval_agent(retrieval_agent, sample_needs, ctx)
     
-    print(f"\n=== RETRIEVED EVIDENCE ({len(evidence_list)} items) ===")
-    for i, evidence in enumerate(evidence_list, 1):
-        print(f"{i}. [{evidence.kind.upper()}] {evidence.ref}")
-        print(f"   Snippet: {evidence.snippet}")
-        print()
+#     print(f"\n=== RETRIEVED EVIDENCE ({len(evidence_list)} items) ===")
+#     for i, evidence in enumerate(evidence_list, 1):
+#         print(f"{i}. [{evidence.kind.upper()}] {evidence.ref}")
+#         print(f"   Snippet: {evidence.snippet}")
+#         print()
     
-    return evidence_list
+#     return evidence_list
 
 
-if __name__ == "__main__":
-    # Run the demo
-    asyncio.run(demo_retrieval())
+# if __name__ == "__main__":
+#     # Run the demo
+#     asyncio.run(demo_retrieval())

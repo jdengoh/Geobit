@@ -11,7 +11,7 @@ from typing import List
 import aiohttp
 from agents import Agent, RunContextWrapper, function_tool
 from openai import AsyncOpenAI
-from schemas.evidence import Evidence, Finding, RetrievalNeed
+from app.agent.schemas.evidence import Evidence, Finding, RetrievalNeed
 
 logger = logging.getLogger(__name__)
 

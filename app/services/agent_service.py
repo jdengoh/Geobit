@@ -20,6 +20,7 @@ from agents import (
 from openai.types.responses import ResponseContentPartDoneEvent, ResponseTextDeltaEvent
 from pydantic import BaseModel
 
+from app.agent.pre_screen_agent import create_llm_prescreener
 from app.agent.analysis_agent import create_analysis_planner, create_analysis_synthesizer
 from app.agent.jargen_agent import create_jargon_agent
 from app.agent.analysis_agent import (
@@ -32,7 +33,7 @@ from app.agent.analysis_agent import (
     run_planner,
     run_synthesizer,
 )
-from app.agent.retrieval_agent import create_retrieval_agent, retrieve_evidence
+from app.agent.retriever_agent import create_retrieval_agent, run_retrieval_agent
 from app.agent.review_agent import create_llm_reviewer
 from app.agent.schemas.agents import StateContext
 
@@ -84,13 +85,12 @@ class RunContext:
 class AgentService:
 
     def __init__(self):
-        # self.triage = create_triage_agent()
-        # self.triage_agent = create_triage_agent()
+        self.pre_screen_agent = create_llm_prescreener()
         self.jargon_agent = create_jargon_agent()
         # analysis stack
         self.analysis_planner = create_analysis_planner()
         self.analysis_synth = create_analysis_synthesizer()
-        self.retrieval_agent = create_retrieval_agent()
+        self.retriever_agent = create_retrieval_agent()
         self.review_agent = create_llm_reviewer()
 
 
@@ -117,7 +117,7 @@ class AgentService:
             "Jargon Agent": self.jargon_agent,
             "Analysis Planner": self.analysis_planner,
             "Analysis Synthesizer": self.analysis_synth,
-            "Retrieval Agent": self.retrieval_agent,
+            "Retriever Agent": self.retriever_agent,
             "Reviewer Agent": self.review_agent
         }
         return agents

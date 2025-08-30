@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import time
@@ -16,7 +17,9 @@ from app.schemas.agent import AgentRequest
 from app.services.agent_service import AgentService
 from app.agent.schemas.stream import StreamEvent, FEEnvelope, FEUI
 from app.agent.schemas.agents import StateContext
+from app.agent.schemas.pre_screen_result import PreScreenResult
 from app.agent.schemas.analysis import AnalysisFindings, AnalysisPlan, Evidence,Finding,OpenQuestion
+from app.agent.pre_screen_agent import create_llm_prescreener, run_prescreening
 from app.agent.analysis_agent import (
     StateContext as AnalysisStateContext,
     Evidence,
@@ -27,7 +30,7 @@ from app.agent.analysis_agent import (
     run_planner,
     run_synthesizer,
 )
-from app.agent.retrieval_agent import create_retrieval_agent, retrieve_evidence
+from app.agent.retriever_agent import create_retrieval_agent, run_retrieval_agent
 from app.agent.summariser_agent import run_summariser
 from app.agent.review_agent import run_reviewer
 from app.agent.jargen_agent import create_jargon_agent  
@@ -97,8 +100,11 @@ async def analyze_stream(payload: dict, demo: bool = True):
         ctx.feature_description = payload.get("standardized_description") or ""
 
         # Stage markers (nice for FE progress UI)
+        # **Pre-screen Agent**
         yield _jsonl({"event":"stage","stage":"pre_scan","message":"Pre-scan starting","terminating":False})
-        # add pre-scan agent here
+        await asyncio.sleep(0.01)
+        pre_screen_agent = create_llm_prescreener()
+        pre_screen: PreScreenResult = await run_prescreening(ctx)
 
         # **Jargon Agent**
         yield _jsonl({"event":"stage","stage":"jargon","message":"Jargon expanding","terminating":False})
@@ -123,15 +129,12 @@ async def analyze_stream(payload: dict, demo: bool = True):
         plan: AnalysisPlan = await run_planner(analysis_planner, feature_payload, ctx)
 
         # **Retrieval**
-        retrieval_agent = create_retrieval_agent()
-        evidence: List[Evidence] = await retrieve_evidence(retrieval_agent, plan, ctx)
+        retriever_agent = create_retrieval_agent()
+        evidence: List[Evidence] = await run_retrieval_agent(retriever_agent, plan.retrieval_needs, ctx)
 
         # **Synthesizer**
         analysis_synth = create_analysis_synthesizer()
         findings: AnalysisFindings = await run_synthesizer(analysis_synth, feature_payload, evidence, ctx)
-
-        # Put findings into context for reviewer/summariser
-        ctx.analysis_findings = findings
 
         # **Reviewer**
         yield _jsonl({"event":"stage","stage":"review","message":"Reviewer scoring","terminating":False})

@@ -272,72 +272,72 @@ async def run_synthesizer(
     return res.final_output
 
 # ---------- Local demo ----------
-if __name__ == "__main__":
-    import asyncio
-    from schemas.jargons import JargonQueryResult  # optional; used if populating ctx
-    from schemas.analysis import Evidence
+# if __name__ == "__main__":
+#     import asyncio
+#     from schemas.jargons import JargonQueryResult  # optional; used if populating ctx
+#     from schemas.analysis import Evidence
 
-    # === SAMPLE INPUT (post Jargon Agent) ===
-    # In the real flow, this StandardizedFeature comes from the Jargon Agent.
-    SAMPLE = {
-      "standardized_name": "Curfew-based login restriction for under-18 users in Utah",
-      "standardized_description": "Enforce curfew for Utah minors via ASL + GH; EchoTrace audit; ShadowMode rollout.",
-      "jargon_result": {
-        "detected_terms": [
-          {"term":"ASL","definition":"Age-sensitive logic"},
-          {"term":"GH","definition":"Geo-handler"}
-        ],
-        "searched_terms": [
-          {"term":"Utah Social Media Regulation Act","definition":"state social media law","sources":[{"title":"Utah OAG","link":"https://oag.utah.gov"}]}
-        ],
-        "unknown_terms":[]
-      }
-    }
+#     # === SAMPLE INPUT (post Jargon Agent) ===
+#     # In the real flow, this StandardizedFeature comes from the Jargon Agent.
+#     SAMPLE = {
+#       "standardized_name": "Curfew-based login restriction for under-18 users in Utah",
+#       "standardized_description": "Enforce curfew for Utah minors via ASL + GH; EchoTrace audit; ShadowMode rollout.",
+#       "jargon_result": {
+#         "detected_terms": [
+#           {"term":"ASL","definition":"Age-sensitive logic"},
+#           {"term":"GH","definition":"Geo-handler"}
+#         ],
+#         "searched_terms": [
+#           {"term":"Utah Social Media Regulation Act","definition":"state social media law","sources":[{"title":"Utah OAG","link":"https://oag.utah.gov"}]}
+#         ],
+#         "unknown_terms":[]
+#       }
+#     }
 
-    # === MOCK EVIDENCE (pretend this came from Retrieval Agent) ===
-    # Each entry will be turned into one Finding by the synthesizer.
-    MOCK_EVIDENCE = [
-      {"kind":"doc","ref":"doc:utah_social_media_act#p12","snippet":"Utah law requires parental consent and allows curfew-style protections for minors."},
-      {"kind":"doc","ref":"doc:utah_curfew_guidance#p3","snippet":"Curfew restrictions must be enforced via age verification and Utah targeting."},
-      {"kind":"web","ref":"https://ftc.gov/child-privacy","snippet":"FTC guidance emphasizes parental consent and safeguards for minors."}
-    ]
+#     # === MOCK EVIDENCE (pretend this came from Retrieval Agent) ===
+#     # Each entry will be turned into one Finding by the synthesizer.
+#     MOCK_EVIDENCE = [
+#       {"kind":"doc","ref":"doc:utah_social_media_act#p12","snippet":"Utah law requires parental consent and allows curfew-style protections for minors."},
+#       {"kind":"doc","ref":"doc:utah_curfew_guidance#p3","snippet":"Curfew restrictions must be enforced via age verification and Utah targeting."},
+#       {"kind":"web","ref":"https://ftc.gov/child-privacy","snippet":"FTC guidance emphasizes parental consent and safeguards for minors."}
+#     ]
 
-    # Toggle: simulate the real pipeline where ctx holds the Jargon Pydantic model
-    USE_PYDANTIC_JARGON_IN_CTX = True
+#     # Toggle: simulate the real pipeline where ctx holds the Jargon Pydantic model
+#     USE_PYDANTIC_JARGON_IN_CTX = True
 
-    async def _demo():
-        # NOTE: In production, reaching this agent means PRE-SCREEN has ALREADY passed.
-        ctx = StateContext(session_id="demo-utah-001", current_agent="analysis")
+#     async def _demo():
+#         # NOTE: In production, reaching this agent means PRE-SCREEN has ALREADY passed.
+#         ctx = StateContext(session_id="demo-utah-001", current_agent="analysis")
 
-        if USE_PYDANTIC_JARGON_IN_CTX:
-            ctx.feature_name = SAMPLE["standardized_name"]
-            ctx.feature_description = SAMPLE["standardized_description"]
-            ctx.jargon_translation = JargonQueryResult(**SAMPLE["jargon_result"])
-            payload_for_planner = None  # rely on ctx.*
-        else:
-            payload_for_planner = SAMPLE  # fallback: planner/synth read from payload if ctx lacks data
+#         if USE_PYDANTIC_JARGON_IN_CTX:
+#             ctx.feature_name = SAMPLE["standardized_name"]
+#             ctx.feature_description = SAMPLE["standardized_description"]
+#             ctx.jargon_translation = JargonQueryResult(**SAMPLE["jargon_result"])
+#             payload_for_planner = None  # rely on ctx.*
+#         else:
+#             payload_for_planner = SAMPLE  # fallback: planner/synth read from payload if ctx lacks data
 
-        planner = create_analysis_planner()
-        synth   = create_analysis_synthesizer()
+#         planner = create_analysis_planner()
+#         synth   = create_analysis_synthesizer()
 
-        # ---- PLAN (for Retrieval Agent) ----
-        plan = await run_planner(planner, payload_for_planner, ctx)
-        print("=== ANALYSIS PLAN ===")
-        for i, need in enumerate(plan.retrieval_needs, 1):
-            print(f"{i}. query={need.query} | must={need.must_tags} | nice={need.nice_to_have_tags}")
+#         # ---- PLAN (for Retrieval Agent) ----
+#         plan = await run_planner(planner, payload_for_planner, ctx)
+#         print("=== ANALYSIS PLAN ===")
+#         for i, need in enumerate(plan.retrieval_needs, 1):
+#             print(f"{i}. query={need.query} | must={need.must_tags} | nice={need.nice_to_have_tags}")
 
-        # ---- SYNTHESIZE (from evidence) ----
-        findings = await run_synthesizer(synth, payload_for_planner, MOCK_EVIDENCE, ctx)
-        print("\n=== ANALYSIS FINDINGS ===")
-        for f in findings.findings:
-            print(f"- [{f.supports}] {f.key_point}")
-            for ev in f.evidence:
-                print(f"   • {ev.kind}: {ev.ref}")
+#         # ---- SYNTHESIZE (from evidence) ----
+#         findings = await run_synthesizer(synth, payload_for_planner, MOCK_EVIDENCE, ctx)
+#         print("\n=== ANALYSIS FINDINGS ===")
+#         for f in findings.findings:
+#             print(f"- [{f.supports}] {f.key_point}")
+#             for ev in f.evidence:
+#                 print(f"   • {ev.kind}: {ev.ref}")
 
-        if findings.open_questions:
-            print("\nOpen Questions:")
-            for q in findings.open_questions:
-                # 'blocking=True' here tells the Reviewer/HITL to treat it as a hard gap.
-                print(f" - ({q.category}, blocking={q.blocking}) {q.text}")
+#         if findings.open_questions:
+#             print("\nOpen Questions:")
+#             for q in findings.open_questions:
+#                 # 'blocking=True' here tells the Reviewer/HITL to treat it as a hard gap.
+#                 print(f" - ({q.category}, blocking={q.blocking}) {q.text}")
 
-    asyncio.run(_demo())
+#     asyncio.run(_demo())

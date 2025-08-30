@@ -398,51 +398,51 @@ async def run_reviewer(ctx: StateContext) -> DecisionRecord:
     return verdict
 
 # ----------------- Local demo -----------------
-if __name__ == "__main__":
-    import asyncio
-    from schemas.analysis import AnalysisFindings, Finding, Evidence, OpenQuestion
+# if __name__ == "__main__":
+#     import asyncio
+#     from schemas.analysis import AnalysisFindings, Finding, Evidence, OpenQuestion
 
-    af = AnalysisFindings(
-       findings=[
-            Finding(
-                key_point="Utah law requires parental consent and allows curfew-style protections for minors.",
-                supports="approve",
-                evidence=[
-                    Evidence(kind="doc", ref="doc:utah_social_media_act#p12",
-                             snippet="Utah law requires parental consent and permits curfew protections for minors.")
-                ],
-            ),
-            Finding(
-                key_point="Curfew restrictions must be enforced via age verification and Utah targeting.",
-                supports="approve",
-                evidence=[
-                    Evidence(kind="doc", ref="doc:utah_curfew_guidance#p3",
-                             snippet="Curfew-based restrictions must use age verification and Utah jurisdiction targeting.")
-                ],
-            ),
-            Finding(
-                key_point="FTC guidance emphasizes parental consent and safeguards for minors.",
-                supports="uncertain",
-                evidence=[
-                    Evidence(kind="web", ref="https://ftc.gov/child-privacy",
-                             snippet="FTC guidance highlights parental consent and minor safeguards.")
-                ],
-            ),
-        ],
-        open_questions=[
-            OpenQuestion(
-                text="FTC guidance is not geo-specific and does not explicitly mandate geo-targeting or geo-based curfew logic; does it affect the need for geo-specific compliance?",
-                category="policy",
-                blocking=False,
-            ),
-        ],
-    )
+#     af = AnalysisFindings(
+#        findings=[
+#             Finding(
+#                 key_point="Utah law requires parental consent and allows curfew-style protections for minors.",
+#                 supports="approve",
+#                 evidence=[
+#                     Evidence(kind="doc", ref="doc:utah_social_media_act#p12",
+#                              snippet="Utah law requires parental consent and permits curfew protections for minors.")
+#                 ],
+#             ),
+#             Finding(
+#                 key_point="Curfew restrictions must be enforced via age verification and Utah targeting.",
+#                 supports="approve",
+#                 evidence=[
+#                     Evidence(kind="doc", ref="doc:utah_curfew_guidance#p3",
+#                              snippet="Curfew-based restrictions must use age verification and Utah jurisdiction targeting.")
+#                 ],
+#             ),
+#             Finding(
+#                 key_point="FTC guidance emphasizes parental consent and safeguards for minors.",
+#                 supports="uncertain",
+#                 evidence=[
+#                     Evidence(kind="web", ref="https://ftc.gov/child-privacy",
+#                              snippet="FTC guidance highlights parental consent and minor safeguards.")
+#                 ],
+#             ),
+#         ],
+#         open_questions=[
+#             OpenQuestion(
+#                 text="FTC guidance is not geo-specific and does not explicitly mandate geo-targeting or geo-based curfew logic; does it affect the need for geo-specific compliance?",
+#                 category="policy",
+#                 blocking=False,
+#             ),
+#         ],
+#     )
 
-    ctx = StateContext(
-        session_id="demo-rev-llm-oq-001",
-        current_agent="reviewer",
-        analysis_findings=af,
-        feature_description="Utah curfew demo",
-    )
+#     ctx = StateContext(
+#         session_id="demo-rev-llm-oq-001",
+#         current_agent="reviewer",
+#         analysis_findings=af,
+#         feature_description="Utah curfew demo",
+#     )
 
-    print(asyncio.run(run_reviewer(ctx)).model_dump())
+#     print(asyncio.run(run_reviewer(ctx)).model_dump())
