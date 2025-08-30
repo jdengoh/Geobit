@@ -33,9 +33,7 @@ GeoBit transforms geo-compliance review from a product velocity bottleneck into 
 
 **Our Solution:** A multi-agent AI architecture that processes feature specifications, normalizes jargon, retrieves regulatory evidence, and delivers confident compliance decisions with full traceability.
 
-
 ## Features <a id="features"></a>
-
 
 **Production-Ready Architecture**:
 
@@ -198,7 +196,6 @@ On Windows, run:
 ./scripts/start.ps1
 ```
 
-
 ### Running backend with Docker <a id="running-with-docker"></a>
 
 *NOTE: docker only runs for the backend, frontend has to be ran separately*
@@ -222,8 +219,6 @@ Run the following command to run the app with Uvicorn:
 ```sh
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-
-
 
 ## Environment Variables <a id="environment-variables"></a>
 
