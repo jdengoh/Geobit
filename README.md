@@ -1,8 +1,20 @@
 # GeoBit by BitStorm
 
-**Ship features, not fines — AI that flags, explains, and logs geo-regulatory risk.**
+
+[![Python](https://img.shields.io/badge/Python-3.13+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![OpenAI Agents](https://img.shields.io/badge/OpenAI_Agents-412991?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com)
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
+[![uv](https://img.shields.io/badge/uv-DE5FE9?style=for-the-badge&logo=astral&logoColor=white)](https://docs.astral.sh/uv/)
+[![pnpm](https://img.shields.io/badge/pnpm-F69220?style=for-the-badge&logo=pnpm&logoColor=white)](https://pnpm.io/)
 
 ![Geobit Logo](assets/geobit.jpg)
+
+**Ship features, not fines — AI that flags, explains, and logs geo-regulatory risk.**
 
 ## Table of Contents
 
@@ -18,7 +30,7 @@
   - [Running backend with Script](#running-backend-with-script)
   - [Running backend with Docker](#running-backend-with-docker)
   - [Running with Uvicorn](#running-with-uvicorn)
-- [Environment Variables (.env)](#environment-variables)
+- [Environment Variables](#environment-variables)
 - [API Endpoints](#api-endpoints)
 - [Development](#development)
 - [Agent Pipeline Overview](#agent-pipeline-overview)
@@ -182,7 +194,7 @@ Install project dependencies:
 uv sync
 ```
 
-### Running backend with Script <a id="running-with-script"></a>
+### Running backend with Script <a id="running-backend-with-script"></a>
 
 On macOS or Linux, run:
 
@@ -196,7 +208,7 @@ On Windows, run:
 ./scripts/start.ps1
 ```
 
-### Running backend with Docker <a id="running-with-docker"></a>
+### Running backend with Docker <a id="running-backend-with-docker"></a>
 
 *NOTE: docker only runs for the backend, frontend has to be ran separately*
 
@@ -212,7 +224,7 @@ On Windows, run:
 ./scripts/start_docker.ps1
 ```
 
-### Running with Uvicorn <a id="running-with-uvicorn-manual"></a>
+### Running with Uvicorn <a id="running-with-uvicorn"></a>
 
 Run the following command to run the app with Uvicorn:
 
@@ -239,9 +251,12 @@ BACKEND_CORS_ORIGINS=http://localhost:8000
 ```env
 NEXT_PUBLIC_API_BASE=http://localhost:8000
 
+```
+
 - Replace `your-key` with your actual API keys.
 - These variables are required for both backend and frontend integration.
 - Never commit your real `.env` file to version control.
+
 
 ## API Endpoints <a id="api-endpoints"></a>
 
@@ -271,12 +286,38 @@ Each agent is modular and can be extended or replaced independently. For more de
 
 ## Contributors <a id="contributors"></a>
 
-Built by BitStorm team for TikTok Techjam 2025
+Built by BitStorm team for TikTok Techjam 2025!
 
-- @jdengoh
-- @ChickenChiang
-- @alvintjw
-- @ZuyuanChong
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/jdengoh">
+        <img src="https://github.com/jdengoh.png" width="100px;" alt=""/>
+        <br /><sub><b>@jdengoh</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/ChickenChiang">
+        <img src="https://github.com/ChickenChiang.png" width="100px;" alt=""/>
+        <br /><sub><b>@ChickenChiang</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/alvintjw">
+        <img src="https://github.com/alvintjw.png" width="100px;" alt=""/>
+        <br /><sub><b>@alvintjw</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/ZuyuanChong">
+        <img src="https://github.com/ZuyuanChong.png" width="100px;" alt=""/>
+        <br /><sub><b>@ZuyuanChong</b></sub>
+      </a>
+    </td>
+  </tr>
+</table>
+
+
 
 ## License
 
