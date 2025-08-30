@@ -8,15 +8,6 @@ cd "${0%/*}" || exit 1
 
 cd ../
 
-# echo "⚙️  Starting infrastructure..."
-
-# Check if infrastructure is already running
-# if docker compose -f docker-compose.infra.yaml ps | grep -q "Up"; then
-#     echo "   Infrastructure already running, skipping startup..."
-# else
-#     docker compose -f docker-compose.infra.yaml up -d
-# fi
-
 
 echo "🚀 Starting backend..."
 
