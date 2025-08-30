@@ -12,10 +12,8 @@ import aiohttp
 from agents import Agent, RunContextWrapper, function_tool
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
-from app.agent.schemas.jargons import (
-    JargonSearchDetail,
-    Source,
-)
+from schemas.evidence import Evidence, Finding, RetrievalNeed
+from schemas.jargons import JargonSearchDetail, Source
 
 load_dotenv()
 
@@ -176,7 +174,6 @@ Once you receive the results from the tool, they will be in the form of a list o
 IMMEDIATELY RETURN this list of `JargonSearchDetail` objects as your final output, no need to add any extra text or commentary.
 
 """
-
 
 def create_web_search_agent():
     """Create the Web Search Agent with parallel search and summarization capability."""

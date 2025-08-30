@@ -8,6 +8,8 @@ from app.agent.schemas.analysis import AnalysisFindings, AnalysisPlan, Evidence
 
 from app.agent.schemas.jargons import JargonQueryResult
 
+from app.agent.schemas.pre_screen_result import PreScreenResult
+
 
 class StateContext(BaseModel):
     """Context object for carrying state through the pipeline."""
@@ -18,6 +20,7 @@ class StateContext(BaseModel):
     # Self-declared
     session_id: str
     current_agent: str
+    retrieved_evidence: Optional[List[Evidence]] = None
     feature_name: Optional[str] = None
     feature_description: Optional[str] = None
     jargon_translation: Optional[JargonQueryResult] = None
@@ -25,3 +28,4 @@ class StateContext(BaseModel):
     retrieved_evidence: List[Evidence] = []
     analysis_findings: Optional[AnalysisFindings] = None
     decision_record: Optional[DecisionRecord] = None
+    prescreening_result: Optional[PreScreenResult] = None
