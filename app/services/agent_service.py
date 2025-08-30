@@ -20,7 +20,7 @@ from agents import (
 from openai.types.responses import ResponseContentPartDoneEvent, ResponseTextDeltaEvent
 from pydantic import BaseModel
 
-from app.agent.pre_screen_agent import create_llm_prescreener
+from app.agent.pre_screen_agent import create_llm_prescreener, run_prescreening
 from app.agent.analysis_agent import create_analysis_planner, create_analysis_synthesizer
 from app.agent.jargen_agent import create_jargon_agent
 from app.agent.analysis_agent import (
@@ -34,8 +34,11 @@ from app.agent.analysis_agent import (
     run_synthesizer,
 )
 from app.agent.retriever_agent import create_retrieval_agent, run_retrieval_agent
-from app.agent.review_agent import create_llm_reviewer
+from app.agent.review_agent import create_llm_reviewer, run_reviewer
 from app.agent.schemas.agents import StateContext
+from app.agent.schemas.pre_screen_result import PreScreenResult
+from app.agent.summariser_agent import run_summariser
+from app.schemas.agent import AgentStreamResponse
 
 
 logger = logging.getLogger(__name__)
@@ -122,6 +125,126 @@ class AgentService:
         }
         return agents
 
+    async def run_full_workflow(
+        self,
+        ctx: StateContext,
+    ) -> AsyncGenerator[AgentStreamResponse, None]:
+        """
+        Main workflow (streaming) to run the full compliance analysis pipeline.
+        Takes a pre-configured StateContext.
+        """
+        
+        logger.info(f"Starting analysis workflow for feature_id: {ctx.feature_id} with agent: {ctx.current_agent}")
+
+        try:
+            
+            logger.info("Step 1: Pre-screening")
+            # Stage 1: Pre-screen Agent
+            yield AgentStreamResponse(
+                agent_name="pre_screen_agent",
+                event="stage",
+                stage="pre_scan",
+                message="⚡ Quick pre-checks…",
+                terminating=False
+            )
+            pre_screen: PreScreenResult = await run_prescreening(ctx)
+
+            logger.info("Step 2: Jargon Agent")
+            # Stage 2: Jargon Agent
+            yield AgentStreamResponse(
+                agent_name="jargon_agent",
+                event="stage",
+                stage="jargon",
+                message="🔎 Expanding & normalising jargon…",
+                terminating=False
+            )
+            prompt = (
+                "You are given a feature artifact. Extract terms and follow instructions.\n"
+                f"FEATURE_NAME: {ctx.feature_name}\nFEATURE_DESC: {ctx.feature_description}\n"
+                "Return ONLY the StandardizedFeature JSON."
+            )
+            res = await Runner.run(self.jargon_agent, prompt, context=RunContextWrapper(context=ctx))
+            ctx.jargon_translation = res.final_output.model_dump() if hasattr(res.final_output, "model_dump") else res.final_output
+
+            logger.info("Step 3: Analysis Planning")
+            # Stage 3: Analysis Planning
+            yield AgentStreamResponse(
+                agent_name="analysis_planner",
+                event="stage",
+                stage="analysis-planning",
+                message="📝 Planning evidence & checks…",
+                terminating=False
+            )
+            feature_payload = {
+                "standardized_name": ctx.feature_name,
+                "standardized_description": ctx.feature_description,
+                "jargon_result": ctx.jargon_translation
+            }
+            plan: AnalysisPlan = await run_planner(self.analysis_planner, feature_payload, ctx)
+
+            logger.info("Step 4: Evidence Retrieval")
+            # Stage 4: Retrieval
+            yield AgentStreamResponse(
+                agent_name="retriever_agent",
+                event="stage",
+                stage="analysis-retrieval",
+                message="📚 Retrieving laws & sources…",
+                terminating=False
+            )
+            evidence: List[Evidence] = await run_retrieval_agent(self.retriever_agent, plan.retrieval_needs, ctx)
+
+            logger.info("Step 5: Analysis Synthesis")
+            # Stage 5: Synthesis
+            yield AgentStreamResponse(
+                agent_name="analysis_synthesizer",
+                event="stage",
+                stage="analysis-synthesis",
+                message="🧩 Synthesising findings…",
+                terminating=False
+            )
+            findings: AnalysisFindings = await run_synthesizer(self.analysis_synth, feature_payload, evidence, ctx)
+
+            logger.info("Step 6: Review")
+            # Stage 6: Review
+            yield AgentStreamResponse(
+                agent_name="review_agent",
+                event="stage",
+                stage="review",
+                message="✅ Reviewing & scoring decision…",
+                terminating=False
+            )
+            decision = await run_reviewer(ctx)
+
+            logger.info("Step 7: Summarisation")
+            # Stage 7: Summary
+            yield AgentStreamResponse(
+                agent_name="summarizer_agent",
+                event="stage",
+                stage="summarise",
+                message="📦 Finalising results…",
+                terminating=False
+            )
+            fe = await run_summariser(ctx)
+
+            # Final result
+            yield AgentStreamResponse(
+                agent_name="final",
+                event="final",
+                payload=fe.model_dump(),
+                terminating=True
+            )
+            logger.info("Analysis workflow completed successfully.")
+
+        except Exception as exc:
+            logger.error(f"Workflow error: {exc}", exc_info=True)
+            yield AgentStreamResponse(
+                agent_name="error_handler",
+                event="error",
+                payload={"type": exc.__class__.__name__, "message": str(exc)},
+                terminating=True
+            )
+
+
     async def run_streaming_workflow(
         self,
         user_input: str,
@@ -144,8 +267,7 @@ class AgentService:
             wrapper = RunContextWrapper(
                 context=StateContext(
                     current_agent=current_agent,
-                    restart=False,
-                    session_id="test_test"
+                    feature_id="test_test",
                 )
             )
 

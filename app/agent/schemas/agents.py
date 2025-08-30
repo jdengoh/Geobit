@@ -18,7 +18,7 @@ class StateContext(BaseModel):
     data_type: Optional[str] = None
 
     # Self-declared
-    session_id: str
+    feature_id: str
     current_agent: str
     retrieved_evidence: Optional[List[Evidence]] = None
     feature_name: Optional[str] = None

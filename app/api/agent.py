@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 from app.core.dependencies import get_agent_service
-from app.schemas.agent import AgentRequest
+from app.schemas.agent import AgentRequest, AgentStreamResponse
 from app.services.agent_service import AgentService
 from app.agent.schemas.stream import StreamEvent, FEEnvelope, FEUI
 from app.agent.schemas.agents import StateContext
@@ -34,7 +34,7 @@ from app.agent.retriever_agent import create_retrieval_agent, run_retrieval_agen
 from app.agent.summariser_agent import run_summariser
 from app.agent.review_agent import run_reviewer
 from app.agent.jargen_agent import create_jargon_agent  
-from agents import Runner, RunContextWrapper
+from agents import Runner, RunContextWrapper, trace
 
 
 def _jsonl(d: dict) -> bytes:
@@ -86,68 +86,120 @@ async def analyze_feature_compliance(
 
 
 #-------------------------------Zuyuan's Code-----------------------------------#
-@router.post("/analyze/stream")
-async def analyze_stream(payload: dict, demo: bool = True):
+# @router.post("/analyze/stream")
+# async def analyze_stream(request: AgentRequest, demo: bool = True):
+#     """
+#     NDJSON streaming endpoint.
+#     - Swagger will show 'can't parse JSON' (expected for streams).
+#     - Use curl to see lines; FE reads until {"event":"final", ...}.
+#     """
+#     current_agent = getattr(request, "current_agent", None)  # or request.current_agent if it exists
+#     if not current_agent:
+#         current_agent = "jargon_agent"  # starting agent
+
+#     feature_id = request.feature_id or f"feat-{int(time.time())}"
+
+#     logger.info(f"Starting analysis stream for feature_id: {feature_id} with agent: {current_agent}")
+
+
+#     async def gen():
+#         ctx = StateContext(feature_id=feature_id, current_agent=current_agent)
+#         ctx.feature_name = request.feature_name or "Untitled Feature"
+#         ctx.feature_description = request.feature_description or ""
+
+#         logger.info(f"Context initialized: {ctx}")
+
+
+
+#         # Stage markers (nice for FE progress UI)
+#         # **Pre-screen Agent**
+#         yield _jsonl({"event":"stage","stage":"pre_scan","message":"⚡ Quick pre-checks…","terminating":False})
+#         pre_screen_agent = create_llm_prescreener()
+#         pre_screen: PreScreenResult = await run_prescreening(ctx)
+
+#         # **Jargon Agent**
+#         yield _jsonl({"event":"stage","stage":"jargon","message":"🔎 Expanding & normalising jargon…","terminating":False})
+#         jargon_agent = create_jargon_agent()
+#         prompt = (
+#             "You are given a feature artifact. Extract terms and follow instructions.\n"
+#             f"FEATURE_NAME: {ctx.feature_name}\nFEATURE_DESC: {ctx.feature_description}\n"
+#             "Return ONLY the StandardizedFeature JSON."
+#         )
+#         res = await Runner.run(jargon_agent, prompt, context=RunContextWrapper(context=ctx))
+#         ctx.jargon_translation = res.final_output.model_dump() if hasattr(res.final_output, "model_dump") else res.final_output
+
+#         # **Analyzer**
+#         yield _jsonl({"event":"stage","stage":"analysis-planning","message":"📝 Planning evidence & checks…","terminating":False})
+#         feature_payload = {
+#             "standardized_name": ctx.feature_name,
+#             "standardized_description": ctx.feature_description,
+#             "jargon_result": ctx.jargon_translation
+#         }
+#         analysis_planner = create_analysis_planner()
+#         plan: AnalysisPlan = await run_planner(analysis_planner, feature_payload, ctx)
+
+#         # **Retrieval**
+#         yield _jsonl({"event":"stage","stage":"analysis-retrieval","message":"📚 Retrieving laws & sources…","terminating":False})
+#         retriever_agent = create_retrieval_agent()
+#         evidence: List[Evidence] = await run_retrieval_agent(retriever_agent, plan.retrieval_needs, ctx)
+
+#         # **Synthesizer**
+#         yield _jsonl({"event":"stage","stage":"analysis-synthesis","message":"🧩 Synthesising findings…","terminating":False})
+#         analysis_synth = create_analysis_synthesizer()
+#         findings: AnalysisFindings = await run_synthesizer(analysis_synth, feature_payload, evidence, ctx)
+
+#         # **Reviewer**
+#         yield _jsonl({"event":"stage","stage":"review","message":"✅ Reviewing & scoring decision…","terminating":False})
+#         decision = await run_reviewer(ctx)      # fills ctx.decision_record
+
+#         # **Summariser**
+#         yield _jsonl({"event":"stage","stage":"summarise","message":"📦 Finalising results…","terminating":False})
+#         fe = await run_summariser(ctx)          # reads ctx.decision_record + ctx.feature_*
+
+#         # FINAL payload (FE listens for this)
+#         yield _jsonl({"event":"final","stage":"final","payload":fe.model_dump(), "terminating":True})
+
+#     return StreamingResponse(gen(), media_type="application/x-ndjson")
+
+
+
+@router.post("/analyze/stream", summary="Analyze Feature for Geo-Compliance Requirements")
+async def analyze_stream(
+    request: AgentRequest, 
+    agent_service: AgentService = Depends(get_agent_service)
+):
     """
-    NDJSON streaming endpoint.
-    - Swagger will show 'can't parse JSON' (expected for streams).
-    - Use curl to see lines; FE reads until {"event":"final", ...}.
+    NDJSON streaming endpoint for feature compliance analysis.
     """
+    current_agent = getattr(request, "current_agent", None) or "jargon_agent"
+    feature_id = getattr(request, "feature_id", None) or f"feat-{int(time.time())}"
+    
+    logger.info(f"Starting analysis stream for feature_id: {feature_id} with agent: {current_agent}")
 
-    async def gen():
-        ctx = StateContext(session_id=f"sess-{int(time.time())}", current_agent="orchestrator")
-        ctx.feature_name = payload.get("standardized_name") or "Untitled Feature"
-        ctx.feature_description = payload.get("standardized_description") or ""
+    # Create and configure StateContext
+    ctx = StateContext(feature_id=feature_id, current_agent=current_agent)
+    ctx.feature_name = request.feature_name or "Untitled Feature"
+    ctx.feature_description = request.feature_description or ""
 
-        # Stage markers (nice for FE progress UI)
-        # **Pre-screen Agent**
-        yield _jsonl({"event":"stage","stage":"pre_scan","message":"⚡ Quick pre-checks…","terminating":False})
-        pre_screen_agent = create_llm_prescreener()
-        pre_screen: PreScreenResult = await run_prescreening(ctx)
+    logger.info(f"Context initialized: {ctx}")
 
-        # **Jargon Agent**
-        yield _jsonl({"event":"stage","stage":"jargon","message":"🔎 Expanding & normalising jargon…","terminating":False})
-        jargon_agent = create_jargon_agent()
-        prompt = (
-            "You are given a feature artifact. Extract terms and follow instructions.\n"
-            f"FEATURE_NAME: {ctx.feature_name}\nFEATURE_DESC: {ctx.feature_description}\n"
-            "Return ONLY the StandardizedFeature JSON."
-        )
-        res = await Runner.run(jargon_agent, prompt, context=RunContextWrapper(context=ctx))
-        ctx.jargon_translation = res.final_output.model_dump() if hasattr(res.final_output, "model_dump") else res.final_output
+    async def response_generator() -> AsyncGenerator[bytes, None]:
+        try:
+            with trace("agent_service.run_full_workflow"):
+                async for chunk in agent_service.run_full_workflow(ctx):
+                    logger.info(f"Yielding chunk: {chunk}")
+                    yield chunk.model_dump_json().encode() + b"\n"
+        except Exception as exc:
+            error_response = AgentStreamResponse(
+                agent_name="error_handler",
+                event="ERROR",
+                data={"type": exc.__class__.__name__, "message": str(exc)}
+            )
+            yield error_response.model_dump_json().encode() + b"\n"
 
-        # **Analyzer**
-        yield _jsonl({"event":"stage","stage":"analysis-planning","message":"📝 Planning evidence & checks…","terminating":False})
-        feature_payload = {
-            "standardized_name": ctx.feature_name,
-            "standardized_description": ctx.feature_description,
-            "jargon_result": ctx.jargon_translation
-        }
-        analysis_planner = create_analysis_planner()
-        plan: AnalysisPlan = await run_planner(analysis_planner, feature_payload, ctx)
+    return StreamingResponse(response_generator(), media_type="application/x-ndjson")
 
-        # **Retrieval**
-        yield _jsonl({"event":"stage","stage":"analysis-retrieval","message":"📚 Retrieving laws & sources…","terminating":False})
-        retriever_agent = create_retrieval_agent()
-        evidence: List[Evidence] = await run_retrieval_agent(retriever_agent, plan.retrieval_needs, ctx)
 
-        # **Synthesizer**
-        yield _jsonl({"event":"stage","stage":"analysis-synthesis","message":"🧩 Synthesising findings…","terminating":False})
-        analysis_synth = create_analysis_synthesizer()
-        findings: AnalysisFindings = await run_synthesizer(analysis_synth, feature_payload, evidence, ctx)
-
-        # **Reviewer**
-        yield _jsonl({"event":"stage","stage":"review","message":"✅ Reviewing & scoring decision…","terminating":False})
-        decision = await run_reviewer(ctx)      # fills ctx.decision_record
-
-        # **Summariser**
-        yield _jsonl({"event":"stage","stage":"summarise","message":"📦 Finalising results…","terminating":False})
-        fe = await run_summariser(ctx)          # reads ctx.decision_record + ctx.feature_*
-
-        # FINAL payload (FE listens for this)
-        yield _jsonl({"event":"final","stage":"final","payload":fe.model_dump(), "terminating":True})
-
-    return StreamingResponse(gen(), media_type="application/x-ndjson")
 
 #-------------------------------Zuyuan's Code-----------------------------------#
 

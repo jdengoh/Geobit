@@ -118,7 +118,7 @@ async def run_summariser(ctx: StateContext) -> FEEnvelope:
     Fallback: if missing, emit an 'insufficient_info' envelope.
     """
     dr: Optional[DecisionRecord] = getattr(ctx, "decision_record", None)
-    feature_id = getattr(ctx, "session_id", "unknown-session")
+    feature_id = getattr(ctx, "feature_id", "unknown-feature")
     name = ctx.feature_name or "Untitled Feature"
     desc = ctx.feature_description or ""
 
