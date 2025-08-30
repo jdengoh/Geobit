@@ -31,7 +31,7 @@ except Exception:
 
 # Local imports
 from jargen_agent import create_jargon_agent
-from analysis_agent_alvin import (
+from analysis_agent import (
     StateContext,
     Evidence,
     AnalysisPlan,

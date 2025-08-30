@@ -1,8 +1,9 @@
 import json
 import logging
 import time
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List
 
+from app.agent.analysis_agent import run_planner
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
@@ -16,8 +17,21 @@ from app.services.agent_service import AgentService
 from app.agent.schemas.stream import StreamEvent, FEEnvelope, FEUI
 from app.agent.schemas.agents import StateContext
 from app.agent.schemas.analysis import AnalysisFindings, AnalysisPlan, Evidence,Finding,OpenQuestion
+from app.agent.analysis_agent import (
+    StateContext as AnalysisStateContext,
+    Evidence,
+    AnalysisPlan,
+    AnalysisFindings,
+    create_analysis_planner,
+    create_analysis_synthesizer,
+    run_planner,
+    run_synthesizer,
+)
+from app.agent.retrieval_agent import create_retrieval_agent, retrieve_evidence
 from app.agent.summariser_agent import run_summariser
 from app.agent.review_agent import run_reviewer
+from app.agent.jargen_agent import create_jargon_agent  
+from agents import Runner, RunContextWrapper
 
 
 def _jsonl(d: dict) -> bytes:
@@ -68,7 +82,7 @@ async def analyze_feature_compliance(
     return StreamingResponse(response_generator(), media_type="application/x-ndjson")
 
 
-#-------------------------------Alvin's Code-----------------------------------#
+#-------------------------------Zuyuan's Code-----------------------------------#
 @router.post("/analyze/stream")
 async def analyze_stream(payload: dict, demo: bool = True):
     """
@@ -76,6 +90,7 @@ async def analyze_stream(payload: dict, demo: bool = True):
     - Swagger will show 'can't parse JSON' (expected for streams).
     - Use curl to see lines; FE reads until {"event":"final", ...}.
     """
+
     async def gen():
         ctx = StateContext(session_id=f"sess-{int(time.time())}", current_agent="orchestrator")
         ctx.feature_name = payload.get("standardized_name") or "Untitled Feature"
@@ -83,61 +98,46 @@ async def analyze_stream(payload: dict, demo: bool = True):
 
         # Stage markers (nice for FE progress UI)
         yield _jsonl({"event":"stage","stage":"pre_scan","message":"Pre-scan starting","terminating":False})
-        yield _jsonl({"event":"stage","stage":"jargon","message":"Jargon expanding","terminating":False})
-        yield _jsonl({"event":"stage","stage":"analysis","message":"Planning + synthesis","terminating":False})
+        # add pre-scan agent here
 
-        # ---- DEMO PIPELINE (until retrieval is wired) ----
-        # Build a trivial AnalysisFindings to drive reviewer + summariser.
-        # You can branch based on text to get different outcomes quickly.
-        desc = (ctx.feature_description or "").lower()
-        if "utah" in desc and ("curfew" in desc or "minor" in desc):
-            # YES: evidence suggests geo compliance is required
-            af = AnalysisFindings(
-                findings=[
-                    Finding(
-                        key_point="Utah law requires parental consent and allows curfew-style protections for minors.",
-                        supports="approve",
-                        evidence=[Evidence(kind="doc", ref="doc:utah_social_media_act#p12", snippet="...")]
-                    ),
-                    Finding(
-                        key_point="Curfew must be enforced via age verification and Utah targeting.",
-                        supports="approve",
-                        evidence=[Evidence(kind="doc", ref="doc:utah_curfew_guidance#p3", snippet="...")]
-                    ),
-                ],
-                open_questions=[]
-            )
-        elif "market testing" in desc or "a/b" in desc or "experiment" in desc:
-            # NO: looks like business rollout, not legal requirement
-            af = AnalysisFindings(
-                findings=[
-                    Finding(
-                        key_point="Geofencing for experimentation is business-driven; no law cited.",
-                        supports="reject",
-                        evidence=[]
-                    )
-                ],
-                open_questions=[]
-            )
-        else:
-            # UNCLEAR: needs review
-            af = AnalysisFindings(
-                findings=[
-                    Finding(
-                        key_point="No explicit law or regulator cited; intent unclear.",
-                        supports="uncertain",
-                        evidence=[]
-                    )
-                ],
-                open_questions=[OpenQuestion(text="Clarify whether this is due to legal/regulatory requirement.", category="policy", blocking=False)]
-            )
+        # **Jargon Agent**
+        yield _jsonl({"event":"stage","stage":"jargon","message":"Jargon expanding","terminating":False})
+        jargon_agent = create_jargon_agent()
+        prompt = (
+            "You are given a feature artifact. Extract terms and follow instructions.\n"
+            f"FEATURE_NAME: {ctx.feature_name}\nFEATURE_DESC: {ctx.feature_description}\n"
+            "Return ONLY the StandardizedFeature JSON."
+        )
+        res = await Runner.run(jargon_agent, prompt, context=RunContextWrapper(context=ctx))
+        ctx.jargon_translation = res.final_output.model_dump() if hasattr(res.final_output, "model_dump") else res.final_output
+
+        yield _jsonl({"event":"stage","stage":"analysis","message":"Planning + synthesis","terminating":False})
+        feature_payload = {
+            "standardized_name": ctx.feature_name,
+            "standardized_description": ctx.feature_description,
+            "jargon_result": ctx.jargon_translation
+        }
+
+        # **Analyzer**
+        analysis_planner = create_analysis_planner()
+        plan: AnalysisPlan = await run_planner(analysis_planner, feature_payload, ctx)
+
+        # **Retrieval**
+        retrieval_agent = create_retrieval_agent()
+        evidence: List[Evidence] = await retrieve_evidence(retrieval_agent, plan, ctx)
+
+        # **Synthesizer**
+        analysis_synth = create_analysis_synthesizer()
+        findings: AnalysisFindings = await run_synthesizer(analysis_synth, feature_payload, evidence, ctx)
 
         # Put findings into context for reviewer/summariser
-        ctx.analysis_findings = af
+        ctx.analysis_findings = findings
 
+        # **Reviewer**
         yield _jsonl({"event":"stage","stage":"review","message":"Reviewer scoring","terminating":False})
         decision = await run_reviewer(ctx)      # fills ctx.decision_record
 
+        # **Summariser**
         yield _jsonl({"event":"stage","stage":"summarise","message":"Formatting final UI payload","terminating":False})
         fe = await run_summariser(ctx)          # reads ctx.decision_record + ctx.feature_*
 
@@ -145,7 +145,9 @@ async def analyze_stream(payload: dict, demo: bool = True):
         yield _jsonl({"event":"final","stage":"summarise","payload":fe.model_dump(), "terminating":True})
 
     return StreamingResponse(gen(), media_type="application/x-ndjson")
-#-------------------------------Alvin's Code-----------------------------------#
+
+#-------------------------------Zuyuan's Code-----------------------------------#
+
 # TODO: non-streaming
 # @router.post("/analyze", summary="Analyze Feature for Geo-Compliance Requirements")
 # async def analyze_feature_compliance(

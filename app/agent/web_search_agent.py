@@ -11,14 +11,15 @@ from typing import List
 import aiohttp
 from agents import Agent, RunContextWrapper, function_tool
 from openai import AsyncOpenAI
-
+from dotenv import load_dotenv
 from app.agent.schemas.jargons import (
     JargonSearchDetail,
     Source,
 )
 
-logger = logging.getLogger(__name__)
+load_dotenv()
 
+logger = logging.getLogger(__name__)
 
 # Helper functions for data processing
 def _format_serper_results(response_data: dict, query: str) -> str:
@@ -71,7 +72,6 @@ async def _single_request(
 ):
     """Handles a single Serper API search and summarization request."""
     api_key = os.getenv("SERPER_API_KEY")
-    api_key = None
     if not api_key:
         logger.warning("❌ SERPER_API_KEY not set")
         raise Exception("SERPER_API_KEY not set")
