@@ -15,6 +15,8 @@
 
 **Ship features, not fines — AI that flags, explains, and logs geo-regulatory risk.**
 
+Check us out on [Youtube](https://www.youtube.com/watch?v=du_Ut_EsA7A&t=6s)!
+
 ## Table of Contents
 
 - [Overview](#overview)
