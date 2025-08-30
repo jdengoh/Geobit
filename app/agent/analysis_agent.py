@@ -52,7 +52,7 @@ from typing import List, Optional
 import json
 from app.agent.schemas.jargons import JargonQueryResult
 from app.agent.schemas.agents import StateContext
-from app.agent._tagging import jargon_to_tags, derive_text_tags, merge_tag_sets
+# from app.agent._tagging import jargon_to_tags, derive_text_tags, merge_tag_sets
 from app.agent.schemas.analysis import (
     RetrievalNeed,
     Evidence,
@@ -148,19 +148,19 @@ def _dump_jargon_for_prompt(jargon: object) -> str:
         return json.dumps(jargon, sort_keys=True)
     return "{}"
 
-def _tags_from(ctx: StateContext, payload: Optional[dict]) -> dict:
-    """
-    Tag derivation for Planner:
-    - Prefer tags derived from ctx.jargon_translation (populated by Jargon Agent).
-    - Fallback to payload['jargon_result'] when ctx is empty.
-    - Merge with regex-derived text tags from name/description.
-    """
-    jr = ctx.jargon_translation or (payload.get("jargon_result") if payload else None)
-    t1 = jargon_to_tags(jr)
-    name = ctx.feature_name or (payload.get("standardized_name") if payload else "")
-    desc = ctx.feature_description or (payload.get("standardized_description") if payload else "")
-    t2 = derive_text_tags(f"{name} {desc}")
-    return merge_tag_sets(t1, t2)
+# def _tags_from(ctx: StateContext, payload: Optional[dict]) -> dict:
+#     """
+#     Tag derivation for Planner:
+#     - Prefer tags derived from ctx.jargon_translation (populated by Jargon Agent).
+#     - Fallback to payload['jargon_result'] when ctx is empty.
+#     - Merge with regex-derived text tags from name/description.
+#     """
+#     jr = ctx.jargon_translation or (payload.get("jargon_result") if payload else None)
+#     t1 = jargon_to_tags(jr)
+#     name = ctx.feature_name or (payload.get("standardized_name") if payload else "")
+#     desc = ctx.feature_description or (payload.get("standardized_description") if payload else "")
+#     t2 = derive_text_tags(f"{name} {desc}")
+#     return merge_tag_sets(t1, t2)
 
 # ---------- AGENT FACTORIES ----------
 def create_analysis_planner() -> Agent[StateContext]:
@@ -199,9 +199,9 @@ def prepare_from_feature_payload(payload: dict) -> tuple[str, dict, dict]:
     desc = payload.get("standardized_description") or name
     jargon_dict = payload.get("jargon_result") or {}
 
-    tj = jargon_to_tags(jargon_dict)
-    tt = derive_text_tags(f"{name} {desc}")
-    tags = merge_tag_sets(tj, tt)
+    # tj = jargon_to_tags(jargon_dict)
+    # tt = derive_text_tags(f"{name} {desc}")
+    # tags = merge_tag_sets(tj, tt)
 
     def _sorted_dict(d: dict) -> dict:
         out = {}
@@ -210,7 +210,7 @@ def prepare_from_feature_payload(payload: dict) -> tuple[str, dict, dict]:
             out[k] = sorted(v) if isinstance(v, list) else v
         return out
 
-    return desc, jargon_dict, _sorted_dict(tags)
+    return desc, jargon_dict 
 
 # ---------- RUN STEPS ----------
 async def run_planner(planner: Agent[StateContext], feature_payload: Optional[dict], ctx: StateContext) -> AnalysisPlan:
@@ -220,7 +220,6 @@ async def run_planner(planner: Agent[StateContext], feature_payload: Optional[di
     """
     feature_name = ctx.feature_name or (feature_payload or {}).get("standardized_name") or ""
     feature_desc = ctx.feature_description or (feature_payload or {}).get("standardized_description") or feature_name
-    tags = _tags_from(ctx, feature_payload)
 
     prompt = (plan_prompt(None, None)
               .replace("{{feature_name}}", feature_name)
@@ -228,7 +227,7 @@ async def run_planner(planner: Agent[StateContext], feature_payload: Optional[di
               .replace("{{jargon_json}}", _dump_jargon_for_prompt(
                   ctx.jargon_translation or (feature_payload or {}).get("jargon_result")
               ))
-              .replace("{{tags_json}}", json.dumps(tags, sort_keys=True))
+
              )
 
     res = await Runner.run(planner, prompt, context=ctx)
