@@ -254,8 +254,8 @@ export function ResultsTable({ data, onExport }: ResultsTableProps) {
                       {getComplianceBadge(item.complianceFlag)}
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-[700px]">
-                        <p className="text-sm text-muted-foreground break-words whitespace-normal">
+                      <div className="max-w-[300px]">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
                           {item.reasoning}
                         </p>
                       </div>
