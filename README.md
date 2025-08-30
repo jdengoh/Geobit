@@ -18,7 +18,6 @@ A modular, multi-agent FastAPI backend for geo-compliance and parental control f
 - [Usage Example](#usage-example)
 - [Agent Pipeline Overview](#agent-pipeline-overview)
 
-
 ## Features
 
 **Production-Ready Architecture**:
@@ -35,12 +34,11 @@ A modular, multi-agent FastAPI backend for geo-compliance and parental control f
 - Levarages multi-agent architecture with **OpenAI Agents SDK** integration for robust agent orchestration and tracing
 - **Modular agent design** with clear separation of concerns and pluggable components
 
-
 ## Project Structure
 
-### Folder Structure:
+### Folder Structure
 
-```
+```sh
 app/
   api/            # FastAPI routers and endpoints
   agent/          # All agent logic and agent-specific schemas
@@ -223,7 +221,6 @@ BACKEND_CORS_ORIGINS=http://localhost:8000
 |----------|--------|-------------|
 | `/analyze/stream` | `POST` | Main streaming analysis endpoint that processes feature specifications through the multi-agent pipeline and returns real-time results in NDJSON format |
 | `/agents` | `GET` | Retrieves a list of all available agents in the pipeline along with their configuration details and current status |
-
 
 ## Development
 
