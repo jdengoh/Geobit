@@ -193,90 +193,90 @@ def requires_human_evaluation(result: PreScreeningResult) -> bool:
     return result.classification == "needs_human_review"
 
 # ----------------- Demo -----------------
-if __name__ == "__main__":
-    import asyncio
+# if __name__ == "__main__":
+#     import asyncio
 
-    # Test cases based on your original examples
-    test_cases = [
-        {
-            "name": "Underage protection via Snowcap trigger",
-            "desc": "Snowcap is activated for all underage users platform-wide, applying ASL to segment accounts. Actions taken under this logic are routed to CDS and monitored using BB to identify deviations in usage.",
-            "expected": "needs_human_review"  # Ambiguous legal requirement
-        },
-        {
-            "name": "Trial run of video replies in EU", 
-            "desc": "Roll out video reply functionality to users in EEA only. GH will manage exposure control, and BB is used to baseline feedback.",
-            "expected": "problematic"  # Business/testing driven
-        },
-        {
-            "name": "Jellybean-based parental notifications for Florida regulation",
-            "desc": "To support Florida's Online Protections for Minors law, this feature extends the Jellybean parental control framework. Notifications are dispatched to verified parent accounts when a minor attempts to access restricted features. Using IMT, the system checks behavioral anomalies against BB models. If violations are detected, restrictions are applied in ShadowMode with full audit logging through CDS. Glow flags ensure compliance visibility during rollout phases.",
-            "expected": "acceptable"  # Clear legal compliance
-        },
-        {
-            "name": "Korea Video Filter",
-            "desc": "A video filter feature is available globally except KR", 
-            "expected": "needs_human_review"  # Ambiguous - no clear rationale
-        },
+#     # Test cases based on your original examples
+#     test_cases = [
+#         {
+#             "name": "Underage protection via Snowcap trigger",
+#             "desc": "Snowcap is activated for all underage users platform-wide, applying ASL to segment accounts. Actions taken under this logic are routed to CDS and monitored using BB to identify deviations in usage.",
+#             "expected": "needs_human_review"  # Ambiguous legal requirement
+#         },
+#         {
+#             "name": "Trial run of video replies in EU", 
+#             "desc": "Roll out video reply functionality to users in EEA only. GH will manage exposure control, and BB is used to baseline feedback.",
+#             "expected": "problematic"  # Business/testing driven
+#         },
+#         {
+#             "name": "Jellybean-based parental notifications for Florida regulation",
+#             "desc": "To support Florida's Online Protections for Minors law, this feature extends the Jellybean parental control framework. Notifications are dispatched to verified parent accounts when a minor attempts to access restricted features. Using IMT, the system checks behavioral anomalies against BB models. If violations are detected, restrictions are applied in ShadowMode with full audit logging through CDS. Glow flags ensure compliance visibility during rollout phases.",
+#             "expected": "acceptable"  # Clear legal compliance
+#         },
+#         {
+#             "name": "Korea Video Filter",
+#             "desc": "A video filter feature is available globally except KR", 
+#             "expected": "needs_human_review"  # Ambiguous - no clear rationale
+#         },
         
         
-    ]
+#     ]
     
-    async def test_prescreening():
-        print("=== PRE-SCREENING AGENT TEST ===\n")
+#     async def test_prescreening():
+#         print("=== PRE-SCREENING AGENT TEST ===\n")
         
-        for i, test_case in enumerate(test_cases, 1):
-            print(f"{i}. Testing: {test_case['name']}")
-            print(f"   Description: {test_case['desc']}")
+#         for i, test_case in enumerate(test_cases, 1):
+#             print(f"{i}. Testing: {test_case['name']}")
+#             print(f"   Description: {test_case['desc']}")
             
-            SAMPLE = {
-                "detected_terms": [
-                    {"term":"NR","definition":"Not recommended"},
-                    {"term":"PF","definition":"Personalized feed"},
-                    {"term":"GH","definition":"Geo-handler; a module responsible for routing features based on user region"},
-                    {"term":"CDS","definition":"Compliance Detection System"},
-                    {"term":"DRT","definition":"Data retention threshold; duration for which logs can be stored"},
-                    {"term":"LCP","definition":"Local compliance policy"},
-                    {"term":"Redline","definition":"Flag for legal review (different from its traditional business use for 'financial loss')"},
-                    {"term":"Softblock","definition":"A user-level limitation applied silently without notifications"},
-                    {"term":"Spanner","definition":"A synthetic name for a rule engine (not to be confused with Google Spanner)"},
-                    {"term":"ShadowMode","definition":"Deploy feature in non-user-impact way to collect analytics only"},
-                    {"term":"T5","definition":"Tier 5 sensitivity data; more critical than T1–T4 in this internal taxonomy"},
-                    {"term":"ASL","definition":"Age-sensitive logic"},
-                    {"term":"Glow","definition":"A compliance-flagging status, internally used to indicate geo-based alerts"},
-                    {"term":"NSP","definition":"Non-shareable policy (content should not be shared externally)"},
-                    {"term":"Jellybean","definition":"Feature name for internal parental control system"},
-                    {"term":"EchoTrace","definition":"Log tracing mode to verify compliance routing"},
-                    {"term":"BB","definition":"Baseline Behavior; standard user behavior used for anomaly detection"},
-                    {"term":"Snowcap","definition":"A synthetic codename for the child safety policy framework"},
-                    {"term":"FR","definition":"Feature rollout status"},
-                    {"term":"IMT","definition":"Internal monitoring trigger"}
-                ],
-                "searched_terms": [
-                    {"term":"Utah Social Media Regulation Act","definition":"state social media law","sources":[{"title":"Utah OAG","link":"https://oag.utah.gov"}]}
-                ],
-                "unknown_terms":[]
-            }
+#             SAMPLE = {
+#                 "detected_terms": [
+#                     {"term":"NR","definition":"Not recommended"},
+#                     {"term":"PF","definition":"Personalized feed"},
+#                     {"term":"GH","definition":"Geo-handler; a module responsible for routing features based on user region"},
+#                     {"term":"CDS","definition":"Compliance Detection System"},
+#                     {"term":"DRT","definition":"Data retention threshold; duration for which logs can be stored"},
+#                     {"term":"LCP","definition":"Local compliance policy"},
+#                     {"term":"Redline","definition":"Flag for legal review (different from its traditional business use for 'financial loss')"},
+#                     {"term":"Softblock","definition":"A user-level limitation applied silently without notifications"},
+#                     {"term":"Spanner","definition":"A synthetic name for a rule engine (not to be confused with Google Spanner)"},
+#                     {"term":"ShadowMode","definition":"Deploy feature in non-user-impact way to collect analytics only"},
+#                     {"term":"T5","definition":"Tier 5 sensitivity data; more critical than T1–T4 in this internal taxonomy"},
+#                     {"term":"ASL","definition":"Age-sensitive logic"},
+#                     {"term":"Glow","definition":"A compliance-flagging status, internally used to indicate geo-based alerts"},
+#                     {"term":"NSP","definition":"Non-shareable policy (content should not be shared externally)"},
+#                     {"term":"Jellybean","definition":"Feature name for internal parental control system"},
+#                     {"term":"EchoTrace","definition":"Log tracing mode to verify compliance routing"},
+#                     {"term":"BB","definition":"Baseline Behavior; standard user behavior used for anomaly detection"},
+#                     {"term":"Snowcap","definition":"A synthetic codename for the child safety policy framework"},
+#                     {"term":"FR","definition":"Feature rollout status"},
+#                     {"term":"IMT","definition":"Internal monitoring trigger"}
+#                 ],
+#                 "searched_terms": [
+#                     {"term":"Utah Social Media Regulation Act","definition":"state social media law","sources":[{"title":"Utah OAG","link":"https://oag.utah.gov"}]}
+#                 ],
+#                 "unknown_terms":[]
+#             }
 
-            ctx = StateContext(
-                session_id=f"test-{test_case['name'].lower().replace(' ', '-')}",
-                current_agent="prescreener",
-                feature_name=test_case['name'],
-                feature_description=test_case['desc'],
-                jargon_translation=SAMPLE,
-            )
+#             ctx = StateContext(
+#                 session_id=f"test-{test_case['name'].lower().replace(' ', '-')}",
+#                 current_agent="prescreener",
+#                 feature_name=test_case['name'],
+#                 feature_description=test_case['desc'],
+#                 jargon_translation=SAMPLE,
+#             )
             
-            result = await run_prescreening(ctx)
+#             result = await run_prescreening(ctx)
             
-            print(f"   Classification: {result.classification}")
-            print(f"   Expected: {test_case['expected']}")
-            print(f"   Reasoning: {result.reasoning}")
-            print(f"   Legal References: {result.legal_references}")
-            print(f"   Discrimination Risk: {result.discrimination_risk}")
+#             print(f"   Classification: {result.classification}")
+#             print(f"   Expected: {test_case['expected']}")
+#             print(f"   Reasoning: {result.reasoning}")
+#             print(f"   Legal References: {result.legal_references}")
+#             print(f"   Discrimination Risk: {result.discrimination_risk}")
             
-            # Validation
-            correct = result.classification == test_case['expected']
-            print(f"   Result: {'✅ CORRECT' if correct else '❌ INCORRECT'}")
-            print()
+#             # Validation
+#             correct = result.classification == test_case['expected']
+#             print(f"   Result: {'✅ CORRECT' if correct else '❌ INCORRECT'}")
+#             print()
     
-    asyncio.run(test_prescreening())
+#     asyncio.run(test_prescreening())
