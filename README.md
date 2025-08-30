@@ -1,6 +1,5 @@
 # GeoBit by BitStorm
 
-
 [![Python](https://img.shields.io/badge/Python-3.13+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![OpenAI Agents](https://img.shields.io/badge/OpenAI_Agents-412991?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com)
@@ -257,7 +256,6 @@ NEXT_PUBLIC_API_BASE=http://localhost:8000
 - These variables are required for both backend and frontend integration.
 - Never commit your real `.env` file to version control.
 
-
 ## API Endpoints <a id="api-endpoints"></a>
 
 | Endpoint | Method | Description |
@@ -316,8 +314,6 @@ Built by BitStorm team for TikTok Techjam 2025!
     </td>
   </tr>
 </table>
-
-
 
 ## License
 
