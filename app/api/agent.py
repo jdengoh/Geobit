@@ -58,7 +58,7 @@ async def list_agents():
     }
 
 
-@router.post("/analyze", summary="Analyze Feature for Geo-Compliance Requirements")
+@router.post("/analyze", summary="Analyze Feature for Geo-Compliance Requirements ")
 async def analyze_feature_compliance(
     request: AgentRequest, agent_service: AgentService = Depends(get_agent_service)
 ):
@@ -101,13 +101,12 @@ async def analyze_stream(payload: dict, demo: bool = True):
 
         # Stage markers (nice for FE progress UI)
         # **Pre-screen Agent**
-        yield _jsonl({"event":"stage","stage":"pre_scan","message":"Pre-scan starting","terminating":False})
-        await asyncio.sleep(0.01)
+        yield _jsonl({"event":"stage","stage":"pre_scan","message":"⚡ Quick pre-checks…","terminating":False})
         pre_screen_agent = create_llm_prescreener()
         pre_screen: PreScreenResult = await run_prescreening(ctx)
 
         # **Jargon Agent**
-        yield _jsonl({"event":"stage","stage":"jargon","message":"Jargon expanding","terminating":False})
+        yield _jsonl({"event":"stage","stage":"jargon","message":"🔎 Expanding & normalising jargon…","terminating":False})
         jargon_agent = create_jargon_agent()
         prompt = (
             "You are given a feature artifact. Extract terms and follow instructions.\n"
@@ -117,35 +116,36 @@ async def analyze_stream(payload: dict, demo: bool = True):
         res = await Runner.run(jargon_agent, prompt, context=RunContextWrapper(context=ctx))
         ctx.jargon_translation = res.final_output.model_dump() if hasattr(res.final_output, "model_dump") else res.final_output
 
-        yield _jsonl({"event":"stage","stage":"analysis","message":"Planning + synthesis","terminating":False})
+        # **Analyzer**
+        yield _jsonl({"event":"stage","stage":"analysis-planning","message":"📝 Planning evidence & checks…","terminating":False})
         feature_payload = {
             "standardized_name": ctx.feature_name,
             "standardized_description": ctx.feature_description,
             "jargon_result": ctx.jargon_translation
         }
-
-        # **Analyzer**
         analysis_planner = create_analysis_planner()
         plan: AnalysisPlan = await run_planner(analysis_planner, feature_payload, ctx)
 
         # **Retrieval**
+        yield _jsonl({"event":"stage","stage":"analysis-retrieval","message":"📚 Retrieving laws & sources…","terminating":False})
         retriever_agent = create_retrieval_agent()
         evidence: List[Evidence] = await run_retrieval_agent(retriever_agent, plan.retrieval_needs, ctx)
 
         # **Synthesizer**
+        yield _jsonl({"event":"stage","stage":"analysis-synthesis","message":"🧩 Synthesising findings…","terminating":False})
         analysis_synth = create_analysis_synthesizer()
         findings: AnalysisFindings = await run_synthesizer(analysis_synth, feature_payload, evidence, ctx)
 
         # **Reviewer**
-        yield _jsonl({"event":"stage","stage":"review","message":"Reviewer scoring","terminating":False})
+        yield _jsonl({"event":"stage","stage":"review","message":"✅ Reviewing & scoring decision…","terminating":False})
         decision = await run_reviewer(ctx)      # fills ctx.decision_record
 
         # **Summariser**
-        yield _jsonl({"event":"stage","stage":"summarise","message":"Formatting final UI payload","terminating":False})
+        yield _jsonl({"event":"stage","stage":"summarise","message":"📦 Finalising results…","terminating":False})
         fe = await run_summariser(ctx)          # reads ctx.decision_record + ctx.feature_*
 
         # FINAL payload (FE listens for this)
-        yield _jsonl({"event":"final","stage":"summarise","payload":fe.model_dump(), "terminating":True})
+        yield _jsonl({"event":"final","stage":"final","payload":fe.model_dump(), "terminating":True})
 
     return StreamingResponse(gen(), media_type="application/x-ndjson")
 
