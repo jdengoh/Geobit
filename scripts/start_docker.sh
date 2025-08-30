@@ -5,4 +5,4 @@ set -euo pipefail
 
 echo "🚀 Starting backend (Docker)..."
 
-docker compose -f docker-compose.yaml -f docker-compose.infra.yaml -f docker-compose.dev.yaml up --build
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up --build
